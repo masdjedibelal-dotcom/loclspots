@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from("places")
     .select(PLACES_SELECT)
-    .order("rating", { ascending: false, nullFirst: false })
+    .order("rating", { ascending: false, nullsFirst: false })
     .limit(20);
 
   if (q) {

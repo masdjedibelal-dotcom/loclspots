@@ -36,7 +36,7 @@ export default async function CollabEditorialPage({ params }: Props) {
   if (!data) notFound();
 
   const { collab, items, chatroom, relatedCollabs } = data;
-  const collabRow = collab as Record<string, unknown>;
+  const collabRow = collab as unknown as Record<string, unknown>;
   const coverEmoji =
     (collabRow.cover_emoji as string) ??
     (Array.isArray(collabRow.cover_media_urls)
@@ -50,11 +50,11 @@ export default async function CollabEditorialPage({ params }: Props) {
 
       <main className="mx-auto max-w-4xl px-6 py-12 sm:px-12">
         <section className="mb-20 text-center">
-          {collabRow.category && (
+          {collabRow.category ? (
             <Badge variant="green" className="mb-6">
-              {collabRow.category as string}
+              {String(collabRow.category)}
             </Badge>
-          )}
+          ) : null}
           <div
             className="mb-6 text-[5rem] leading-none sm:text-[6rem]"
             role="img"

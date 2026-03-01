@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useFormState } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { login } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
   const [state, formAction] = useFormState(login, null);
@@ -62,5 +63,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse rounded-lg bg-warm py-12" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

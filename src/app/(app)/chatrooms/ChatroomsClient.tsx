@@ -83,7 +83,7 @@ export function ChatroomsClient({
             key={room.id}
             chatroom={room}
             isMember={memberIds.has(room.id)}
-            isActive={room.member_count > 0}
+            isActive={(room.member_count ?? 0) > 0}
           />
         ))}
       </div>

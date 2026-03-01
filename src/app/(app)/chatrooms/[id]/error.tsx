@@ -27,9 +27,12 @@ export default function ChatroomError({
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button onClick={reset}>Erneut versuchen</Button>
-        <Button variant="outline" asChild>
-          <Link href="/chatrooms">Zu den Chatrooms</Link>
-        </Button>
+        <Link
+          href="/chatrooms"
+          className="inline-flex items-center justify-center rounded-lg border-2 border-sage px-4 py-2 text-sm font-medium text-sage transition-colors hover:bg-sage hover:text-white"
+        >
+          Zu den Chatrooms
+        </Link>
       </div>
     </div>
   );

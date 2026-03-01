@@ -51,14 +51,16 @@ export interface Place {
 /** Bestehende collabs-Tabelle */
 export interface Collab {
   id: string;
-  owner_id: string;
+  owner_id?: string;
   creator_id: string;
   title: string;
   description: string | null;
-  is_public: boolean;
-  cover_media_urls: string[];
+  category?: string | null;
+  is_public?: boolean;
+  cover_emoji?: string | null;
+  cover_media_urls?: string[];
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   likes_count?: number;
   chatroom_id?: string | null;
   profile?: Profile;
@@ -71,6 +73,8 @@ export interface CollabItem {
   collab_id: string;
   place_id: string;
   position: number;
+  name?: string;
+  maps_url?: string;
   description: string | null;
   created_at: string;
   place?: Place;
@@ -81,6 +85,7 @@ export interface EventRow {
   id: string;
   title: string;
   description: string | null;
+  date?: string | null;
   start_date: string | null;
   start_time: string | null;
   start_datetime: string | null;

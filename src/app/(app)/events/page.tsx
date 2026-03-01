@@ -60,13 +60,13 @@ export default async function EventsPage() {
     return dt < now;
   });
 
-  const categoriesInData = [
-    ...new Set(
+  const categoriesInData = Array.from(
+    new Set(
       (allEvents ?? [])
         .map((e) => e.category)
         .filter((c): c is string => !!c)
-    ),
-  ].sort();
+    )
+  ).sort();
   const filterCategories =
     categoriesInData.length > 0 ? categoriesInData : [...CATEGORIES];
 

@@ -29,7 +29,9 @@ export function CollabsClient({
   const [sort, setSort] = useState<SortMode>("newest");
 
   const categories = useMemo(() => {
-    const set = new Set(collabs.map((c) => c.category));
+    const set = new Set(
+      collabs.map((c) => c.category).filter((cat): cat is string => !!cat)
+    );
     return Array.from(set).sort();
   }, [collabs]);
 
@@ -115,7 +117,7 @@ export function CollabsClient({
           >
             <option value="all">Alle</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>
+              <option key={cat} value={cat ?? ""}>
                 {cat}
               </option>
             ))}

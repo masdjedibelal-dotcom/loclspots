@@ -29,13 +29,12 @@ function getMapsUrl(item: CollabItem & { place?: Place }): string | null {
     return `https://www.google.com/maps?q=${p.lat},${p.lng}`;
   }
   if (p?.place_url) return p.place_url;
-  const row = item as Record<string, unknown>;
-  if (row.maps_url) return row.maps_url as string;
+  if (item.maps_url) return item.maps_url;
   return null;
 }
 
 function getPlaceName(item: CollabItem & { place?: Place }): string {
-  return item.place?.name ?? (item as Record<string, unknown>).name ?? "Ort";
+  return item.place?.name ?? item.name ?? "Ort";
 }
 
 function getPlaceCategory(item: CollabItem & { place?: Place }): string | null {

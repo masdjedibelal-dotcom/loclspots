@@ -25,7 +25,7 @@ export default async function CollabsPage() {
     );
   }
 
-  const creatorIds = [...new Set(rawCollabs.map((c) => c.creator_id))];
+  const creatorIds = Array.from(new Set(rawCollabs.map((c) => c.creator_id)));
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, username, display_name, avatar_url")

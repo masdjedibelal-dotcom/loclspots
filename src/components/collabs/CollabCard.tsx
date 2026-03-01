@@ -34,7 +34,7 @@ interface CollabCardProps {
 }
 
 export function CollabCard({ collab, itemCount }: CollabCardProps) {
-  const bgClass = getCategoryBg(collab.category);
+  const bgClass = getCategoryBg(collab.category ?? "");
   const profile = collab.profile;
 
   return (

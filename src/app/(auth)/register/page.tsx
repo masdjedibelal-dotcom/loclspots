@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useFormState } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { register } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/dashboard";
   const [state, formAction] = useFormState(register, null);
@@ -81,5 +82,13 @@ export default function RegisterPage() {
         </Link>
       </p>
     </form>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse rounded-lg bg-warm py-12" />}>
+      <RegisterForm />
+    </Suspense>
   );
 }

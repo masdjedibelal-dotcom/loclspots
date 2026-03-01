@@ -298,7 +298,7 @@ export function ProfilClient({
                   <div>
                     <p className="font-medium text-forest">{event.title}</p>
                     <p className="text-xs text-sage">
-                      {new Date(event.date).toLocaleDateString("de-DE", {
+                      {new Date(event.date ?? event.start_datetime ?? event.start_date ?? "").toLocaleDateString("de-DE", {
                         weekday: "short",
                         day: "numeric",
                         month: "short",

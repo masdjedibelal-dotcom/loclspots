@@ -44,7 +44,7 @@ export default async function ChatroomPage({ params }: PageProps) {
 
   const messages: Message[] = [];
   if (rawMessages?.length) {
-    const userIds = [...new Set(rawMessages.map((m) => m.user_id))];
+    const userIds = Array.from(new Set(rawMessages.map((m) => m.user_id)));
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, username, display_name, avatar_url")

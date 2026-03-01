@@ -105,7 +105,7 @@ export async function getCollabWithItems(
     relatedCollabs: (related ?? []).map((r) => ({
       id: r.id,
       title: r.title,
-      cover_emoji: (r as Record<string, unknown>).cover_emoji ?? null,
+      cover_emoji: ((r as Record<string, unknown>).cover_emoji as string) ?? null,
     })),
   };
 }
