@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { getArticleSlugs } from "@/lib/supabase";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -7,7 +6,16 @@ const baseUrl =
   "http://localhost:3000";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const slugs = await getArticleSlugs();
+  let slugs: string[] = [];
+
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    try {
+      const { getArticleSlugs } = await import("@/lib/supabase");
+      slugs = await getArticleSlugs();
+    } catch {
+      // Env vars set but fetch failed — return static sitemap without blog slugs
+    }
+  }
 
   const staticPages: MetadataRoute.Sitemap = [
     {

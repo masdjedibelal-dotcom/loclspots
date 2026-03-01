@@ -25,10 +25,10 @@ export default async function EventsPage() {
   const { data: allEvents } = await supabase
     .from("events")
     .select(
-      "id, title, description, start_date, start_time, start_datetime, end_date, end_time, end_datetime, venue_name, venue_id, category, tags, source, source_url, is_public, is_cancelled, cover_image_url, lat, lng, created_at, updated_at, highlights"
+      "id, title, description, date, start_date, start_time, start_datetime, end_date, end_time, end_datetime, venue_name, venue_id, category, tags, source, source_url, is_public, is_cancelled, cover_image_url, lat, lng, created_at, updated_at, highlights"
     )
     .eq("is_cancelled", false)
-    .order("start_date", { ascending: true, nullsFirst: false });
+    .order("date", { ascending: true, nullsFirst: false });
 
   const { data: participantRows } = await supabase
     .from("event_participants")
@@ -51,13 +51,13 @@ export default async function EventsPage() {
   }));
 
   const upcomingEvents = eventsWithExtras.filter((e) => {
-    const dt = e.start_datetime ?? e.start_date ?? e.created_at;
-    return dt >= now;
+    const dt = e.start_datetime ?? e.start_date ?? e.date ?? e.created_at;
+    return dt && dt >= now;
   });
 
   const pastEvents = eventsWithExtras.filter((e) => {
-    const dt = e.start_datetime ?? e.start_date ?? e.created_at;
-    return dt < now;
+    const dt = e.start_datetime ?? e.start_date ?? e.date ?? e.created_at;
+    return !dt || dt < now;
   });
 
   const categoriesInData = Array.from(

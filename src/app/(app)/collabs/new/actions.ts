@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 
 interface CollabItemInput {
   place_id: string;
+  name: string;
+  maps_url: string;
   position: number;
   description: string | null;
 }
@@ -70,6 +72,8 @@ export async function createCollab(input: CreateCollabInput) {
   const itemsToInsert = input.items.map((item) => ({
     collab_id: collab.id,
     place_id: item.place_id,
+    name: item.name,
+    maps_url: item.maps_url,
     position: item.position,
     description: item.description || null,
   }));

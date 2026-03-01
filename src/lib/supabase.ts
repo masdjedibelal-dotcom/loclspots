@@ -48,17 +48,20 @@ export async function getLatestArticles(limit: number = 3): Promise<Article[]> {
 
 /**
  * Lädt alle öffentlichen Collabs für die Startseite (Entdecken-Abschnitt).
- * is_public = true, sortiert nach created_at DESC.
+ * is_public = true (falls Spalte existiert), sonst alle. Sortiert nach created_at DESC.
  */
 export async function getPublicCollabs(): Promise<PublicCollab[]> {
   const supabase = supabasePublic;
 
-  const { data, error } = await supabase
+  const baseQuery = supabase
     .from("collabs")
     .select("id, title, description, category, cover_emoji, likes_count")
-    .eq("is_public", true)
     .order("created_at", { ascending: false });
 
+  const { data: withFilter, error: err1 } = await baseQuery.eq("is_public", true);
+  if (!err1) return (withFilter ?? []) as PublicCollab[];
+
+  const { data, error } = await baseQuery;
   if (error) throw error;
   return (data ?? []) as PublicCollab[];
 }

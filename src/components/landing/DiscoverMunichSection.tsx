@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -49,10 +48,8 @@ interface DiscoverMunichSectionProps {
 
 export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
   const { isLoggedIn } = useAuth();
-  const router = useRouter();
   const carouselRef = useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<string>("Alle");
-  const [loginModalCollabId, setLoginModalCollabId] = useState<string | null>(null);
 
   const filteredCollabs =
     activeFilter === "Alle"
@@ -70,19 +67,6 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
     el.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
-  const handleCardClick = (e: React.MouseEvent, collabId: string) => {
-    if (isLoggedIn) {
-      router.push(`/collabs/${collabId}`);
-      return;
-    }
-    e.preventDefault();
-    setLoginModalCollabId(collabId);
-  };
-
-  const redirectUrl = loginModalCollabId
-    ? `/collabs/${loginModalCollabId}`
-    : "/collabs";
-  const loginHref = `/login?redirect=${encodeURIComponent(redirectUrl)}`;
 
   return (
     <section className="bg-cream py-20 sm:py-24">
@@ -158,10 +142,9 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
               </div>
             ) : (
               filteredCollabs.map((collab) => (
-                <a
+                <Link
                   key={collab.id}
-                  href={isLoggedIn ? `/collabs/${collab.id}` : "#"}
-                  onClick={(e) => handleCardClick(e, collab.id)}
+                  href={`/collabs/${collab.id}`}
                   className={cn(
                     "group flex h-[200px] w-[280px] shrink-0 snap-center flex-col overflow-hidden rounded-xl border border-sage/12 bg-white",
                     "transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-forest/10",
@@ -200,60 +183,13 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
                       <span>{collab.likes_count ?? 0}</span>
                     </div>
                   </div>
-                </a>
+                </Link>
               ))
             )}
           </div>
         </div>
       </div>
 
-      {/* Login-Modal */}
-      {loginModalCollabId && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setLoginModalCollabId(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="login-modal-title"
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3
-              id="login-modal-title"
-              className="font-serif text-lg font-bold text-forest"
-            >
-              Melde dich an
-            </h3>
-            <p className="mt-2 text-[14px] text-muted">
-              Um Collabs zu entdecken und deine eigenen Listen zu erstellen,
-              melde dich bitte an oder registriere dich.
-            </p>
-            <div className="mt-6 flex flex-col gap-3">
-              <Link
-                href={loginHref}
-                className="rounded-full bg-forest py-3 text-center text-[15px] font-semibold text-white transition-colors hover:bg-peach"
-              >
-                Einloggen
-              </Link>
-              <Link
-                href={`/register?redirect=${encodeURIComponent(redirectUrl)}`}
-                className="rounded-full border-2 border-sage py-3 text-center text-[15px] font-medium text-sage transition-colors hover:bg-sage hover:text-white"
-              >
-                Registrieren
-              </Link>
-              <button
-                type="button"
-                onClick={() => setLoginModalCollabId(null)}
-                className="text-[14px] text-muted hover:text-forest"
-              >
-                Abbrechen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   );
 }

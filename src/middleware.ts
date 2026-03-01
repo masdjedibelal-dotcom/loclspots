@@ -14,7 +14,18 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.includes(pathname);
 }
 
+/** Öffentliche Collab-Detailseite: /collabs/[id] (nicht /collabs/new oder /collabs/[id]/edit) */
+function isPublicCollabDetail(pathname: string): boolean {
+  const parts = pathname.split("/").filter(Boolean);
+  return (
+    parts.length === 2 &&
+    parts[0] === "collabs" &&
+    parts[1] !== "new"
+  );
+}
+
 function isProtectedRoute(pathname: string): boolean {
+  if (isPublicCollabDetail(pathname)) return false;
   return PROTECTED_PREFIXES.some((prefix) =>
     pathname === prefix || pathname.startsWith(`${prefix}/`)
   );

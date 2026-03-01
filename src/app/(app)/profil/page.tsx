@@ -17,13 +17,42 @@ export default async function ProfilPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  if (!profile) redirect("/");
+  if (!profile) {
+    // Profil fehlt (z.B. Trigger nicht ausgeführt) – anlegen
+    const username =
+      user.user_metadata?.username ||
+      `user_${user.id.replace(/-/g, "").slice(0, 12)}`;
+    const displayName =
+      user.user_metadata?.display_name ||
+      user.user_metadata?.full_name ||
+      user.email?.split("@")[0] ||
+      "Nutzer";
+
+    const { error: insertError } = await supabase.from("profiles").insert({
+      id: user.id,
+      username,
+      display_name: displayName,
+      bio: null,
+      interests: [],
+    });
+
+    if (!insertError || insertError.code === "23505") {
+      const { data: fetched } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      profile = fetched;
+    }
+  }
+
+  if (!profile) redirect("/login");
 
   const { count: collabsCount } = await supabase
     .from("collabs")

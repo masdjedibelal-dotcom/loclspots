@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Calendar } from "lucide-react";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { DashboardClient } from "./DashboardClient";
+import { getLatestArticles } from "@/lib/supabase";
 import type { Chatroom } from "@/lib/types";
 
 function getGreeting() {
@@ -9,15 +8,6 @@ function getGreeting() {
   if (hour < 12) return "Guten Morgen";
   if (hour < 18) return "Guten Tag";
   return "Guten Abend";
-}
-
-function formatEventDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("de-DE", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
 }
 
 export default async function DashboardPage() {
@@ -37,7 +27,7 @@ export default async function DashboardPage() {
   const displayName = profile?.display_name ?? "Nutzer";
   const greeting = getGreeting();
 
-  // Meine Chatrooms: user's joined rooms
+  // Deine Chatrooms (für Stories-Pills oben)
   const { data: memberRooms } = await supabase
     .from("chatroom_members")
     .select("chatroom_id")
@@ -45,162 +35,97 @@ export default async function DashboardPage() {
 
   const memberRoomIds = memberRooms?.map((r) => r.chatroom_id) ?? [];
   let myChatrooms: Chatroom[] = [];
+  let exampleChatrooms: Array<Chatroom & { lastMessage?: string; lastMessageAt?: string; isActive?: boolean }> = [];
 
   if (memberRoomIds.length > 0) {
     const { data } = await supabase
       .from("chatroom_with_member_count")
       .select("*")
-      .in("id", memberRoomIds)
-      .limit(3);
+      .in("id", memberRoomIds);
     myChatrooms = (data ?? []) as Chatroom[];
+  } else {
+    // Beispiel-Chatrooms mit letzter Nachricht und Online-Status
+    const { data: exampleRooms } = await supabase
+      .from("chatroom_with_member_count")
+      .select("*")
+      .order("member_count", { ascending: false })
+      .limit(6);
+
+    if (exampleRooms && exampleRooms.length > 0) {
+      const roomIds = exampleRooms.map((r) => r.id);
+      const { data: recentMessages } = await supabase
+        .from("messages")
+        .select("chatroom_id, content, created_at")
+        .in("chatroom_id", roomIds)
+        .order("created_at", { ascending: false });
+
+      const lastByRoom = new Map<string, { content: string; created_at: string }>();
+      for (const m of recentMessages ?? []) {
+        if (!lastByRoom.has(m.chatroom_id)) {
+          lastByRoom.set(m.chatroom_id, {
+            content: m.content,
+            created_at: m.created_at,
+          });
+        }
+      }
+
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+      exampleChatrooms = exampleRooms.map((room) => {
+        const last = lastByRoom.get(room.id);
+        const lastAt = last ? new Date(last.created_at).getTime() : 0;
+        const isActive = lastAt >= twoHoursAgo;
+        return {
+          ...(room as Chatroom),
+          lastMessage: last?.content,
+          lastMessageAt: last?.created_at,
+          isActive,
+        };
+      });
+    }
   }
 
-  // Neue Collabs (neueste 3)
-  const { data: newCollabs } = await supabase
-    .from("collabs")
-    .select("id, title, category, cover_emoji")
-    .order("created_at", { ascending: false })
-    .limit(3);
-
-  // Kommende Events (nächste 3)
+  // Feed-Content parallel laden – mehr für gemischten Stream
   const now = new Date().toISOString();
-  const { data: upcomingEvents } = await supabase
-    .from("events")
-    .select("id, title, date")
-    .gte("date", now)
-    .order("date", { ascending: true })
-    .limit(3);
+
+  const [
+    collabsResult,
+    eventsResult,
+    articlesResult,
+  ] = await Promise.all([
+    supabase
+      .from("collabs")
+      .select("id, title, description, category, cover_emoji, likes_count, created_at")
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("events")
+      .select("id, title, date, start_datetime, start_date, category, created_at")
+      .eq("is_cancelled", false)
+      .gte("date", now)
+      .order("date", { ascending: true })
+      .limit(12),
+    (async () => {
+      try {
+        return await getLatestArticles(8);
+      } catch {
+        return [];
+      }
+    })(),
+  ]);
+
+  const collabs = collabsResult.data ?? [];
+  const upcomingEvents = eventsResult.data ?? [];
+  const articles = articlesResult ?? [];
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="font-serif text-2xl text-forest sm:text-3xl">
-          {greeting}, {displayName}!
-        </h1>
-        <p className="mt-1 text-sage">
-          Willkommen zurück bei LoclSpots.
-        </p>
-      </div>
-
-      {/* Meine Chatrooms */}
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-forest">Meine Chatrooms</h2>
-          <Link
-            href="/chatrooms"
-            className="text-sm text-sage hover:text-forest"
-          >
-            Alle ansehen
-          </Link>
-        </div>
-        <div className="mt-3">
-          {myChatrooms.length === 0 ? (
-            <EmptyState
-              emoji="💬"
-              title="Noch keine Chatrooms"
-              description="Entdecke Chatrooms nach deinen Interessen und tritt bei."
-            />
-          ) : (
-            <div className="space-y-2">
-              {myChatrooms.map((room) => (
-                <Link
-                  key={room.id}
-                  href={`/chatrooms/${room.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-warm bg-cream/50 p-4 transition-colors hover:border-sage/50"
-                >
-                  <span className="text-2xl">{room.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-forest">{room.name}</p>
-                    <p className="text-xs text-sage">
-                      {room.member_count} Mitglieder
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Neue Collabs */}
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-forest">Neue Collabs</h2>
-          <Link
-            href="/collabs"
-            className="text-sm text-sage hover:text-forest"
-          >
-            Alle ansehen
-          </Link>
-        </div>
-        <div className="mt-3">
-          {!newCollabs || newCollabs.length === 0 ? (
-            <EmptyState
-              emoji="📋"
-              title="Noch keine Collabs"
-              description="Kuratierte Listen mit Tipps – von der Community erstellt."
-            />
-          ) : (
-            <div className="space-y-2">
-              {newCollabs.map((collab) => (
-                <Link
-                  key={collab.id}
-                  href={`/collabs/${collab.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-warm bg-cream/50 p-4 transition-colors hover:border-sage/50"
-                >
-                  <span className="text-2xl">{collab.cover_emoji ?? "📋"}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-forest">{collab.title}</p>
-                    <p className="text-xs text-sage">{collab.category}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Kommende Events */}
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-forest">Kommende Events</h2>
-          <Link
-            href="/events"
-            className="text-sm text-sage hover:text-forest"
-          >
-            Alle ansehen
-          </Link>
-        </div>
-        <div className="mt-3">
-          {!upcomingEvents || upcomingEvents.length === 0 ? (
-            <EmptyState
-              emoji="📅"
-              title="Keine kommenden Events"
-              description="Events werden von der Community erstellt. Bald sind welche da!"
-            />
-          ) : (
-            <div className="space-y-2">
-              {upcomingEvents.map((event) => (
-                <Link
-                  key={event.id}
-                  href={`/events`}
-                  className="flex items-center gap-3 rounded-xl border border-warm bg-cream/50 p-4 transition-colors hover:border-sage/50"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sage/10 text-sage">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-forest">{event.title}</p>
-                    <p className="text-xs text-sage">
-                      {formatEventDate(event.date)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+    <DashboardClient
+      displayName={displayName}
+      greeting={greeting}
+      myChatrooms={myChatrooms}
+      exampleChatrooms={exampleChatrooms}
+      collabs={collabs}
+      upcomingEvents={upcomingEvents}
+      articles={articles}
+    />
   );
 }

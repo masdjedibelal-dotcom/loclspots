@@ -139,11 +139,21 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
       description: description.trim() || null,
       category,
       chatroom_id: chatroomId || null,
-      items: places.map((p, i) => ({
-        place_id: p.place.id,
-        position: i,
-        description: p.description.trim() || null,
-      })),
+      items: places.map((p, i) => {
+        const place = p.place;
+        const mapsUrl =
+          place.place_url ||
+          (place.lat && place.lng
+            ? `https://www.google.com/maps?q=${place.lat},${place.lng}`
+            : "https://www.google.com/maps");
+        return {
+          place_id: place.id,
+          name: place.name,
+          maps_url: mapsUrl,
+          position: i,
+          description: p.description.trim() || null,
+        };
+      }),
     });
 
     setIsSubmitting(false);
