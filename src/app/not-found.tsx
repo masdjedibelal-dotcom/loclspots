@@ -11,7 +11,7 @@ export default function NotFound() {
         Die angeforderte Seite existiert nicht oder wurde verschoben.
       </p>
       <Link
-        href="/dashboard"
+        href="/home"
         className="mt-6 inline-flex items-center justify-center rounded-lg border-2 border-sage px-4 py-2 text-sm font-medium text-forest transition-colors hover:bg-sage/10"
       >
         Zurück zum Dashboard

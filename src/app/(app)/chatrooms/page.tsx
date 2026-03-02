@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUnreadCounts } from "@/lib/reads";
 import { ChatroomsClient } from "./ChatroomsClient";
 import type { Chatroom } from "@/lib/types";
 
@@ -13,6 +14,7 @@ export default async function ChatroomsPage() {
   const { data: chatrooms } = await supabase
     .from("chatroom_with_member_count")
     .select("*")
+    .order("sort_order", { ascending: true })
     .order("member_count", { ascending: false });
 
   const { data: memberships } = await supabase
@@ -21,6 +23,11 @@ export default async function ChatroomsPage() {
     .eq("user_id", user.id);
 
   const memberIds = memberships?.map((m) => m.chatroom_id) ?? [];
+
+  const unreadCounts = await getUnreadCounts(supabase, user.id);
+  const unreadByChatroom = Object.fromEntries(
+    unreadCounts.map((r) => [r.chatroom_id, r.unread_count])
+  );
 
   return (
     <div className="space-y-6">
@@ -37,6 +44,7 @@ export default async function ChatroomsPage() {
       <ChatroomsClient
         chatrooms={(chatrooms ?? []) as Chatroom[]}
         memberIds={memberIds}
+        unreadCounts={unreadByChatroom}
       />
     </div>
   );

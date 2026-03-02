@@ -15,10 +15,13 @@ export async function GET(request: Request) {
     .from("places")
     .select(PLACES_SELECT)
     .order("rating", { ascending: false, nullsFirst: false })
-    .limit(20);
+    .limit(q ? 10 : 20);
 
   if (q) {
-    query = query.ilike("name", `%${q}%`);
+    const pattern = `%${q}%`;
+    query = query.or(
+      `name.ilike.${pattern},category.ilike.${pattern},address.ilike.${pattern}`
+    );
   }
   if (kind) {
     query = query.eq("kind", kind);

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { X, Plus, GripVertical } from "lucide-react";
+import Link from "next/link";
+import { X, Plus, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { StepProgress } from "@/components/ui/StepProgress";
 import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
 import { PlacePicker } from "@/components/collabs/PlacePicker";
@@ -13,15 +14,24 @@ import { useToast } from "@/hooks/useToast";
 import type { Place } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const EMOJIS = ["📋", "🗺️", "🎭", "🥾", "☕", "🍕", "🎲", "💃", "📚", "🎨", "🏃", "🌿"];
+const EMOJIS = [
+  "📍", "📋", "🗺️", "🎭", "🥾", "☕", "🍕", "🎲", "💃", "📚",
+  "🎨", "🏃", "🌿", "✈️", "🎵", "🍺", "📸", "🎬", "🏖️", "🛍️",
+];
 const CATEGORIES = [
+  "Essen & Trinken",
   "Outdoor",
   "Kultur",
   "Sport",
   "After Work",
-  "Essen & Trinken",
   "Sonstiges",
 ] as const;
+
+const TITLE_MAX = 60;
+const DESCRIPTION_MAX = 200;
+const PLACE_DESCRIPTION_MAX = 100;
+const PLACES_MIN = 2;
+const PLACES_MAX = 20;
 
 interface ChatroomOption {
   id: string;
@@ -40,23 +50,27 @@ interface CollabNewFormProps {
 }
 
 export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
-  const router = useRouter();
   const { toast } = useToast();
+  const [createdCollabId, setCreatedCollabId] = useState<string | null>(null);
+  const [createdIsPublic, setCreatedIsPublic] = useState(false);
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPlacePicker, setShowPlacePicker] = useState(false);
 
-  const [emoji, setEmoji] = useState("📋");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<string>("");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    cover_emoji: "📍",
+  });
   const [chatroomId, setChatroomId] = useState<string>("");
 
   const [places, setPlaces] = useState<SelectedPlaceItem[]>([]);
 
   const addPlace = (place: Place) => {
     if (places.some((p) => p.place.id === place.id)) return;
+    if (places.length >= PLACES_MAX) return;
     setPlaces((prev) => [
       ...prev,
       { place, description: "", position: prev.length },
@@ -89,17 +103,32 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
     });
   };
 
+  const movePlace = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index > 0) reorderPlaces(index, index - 1);
+    if (direction === "down" && index < places.length - 1)
+      reorderPlaces(index, index + 1);
+  };
+
   const validateStep1 = (): string | null => {
-    if (!title.trim()) return "Bitte gib einen Titel ein.";
-    if (title.length > 80) return "Der Titel darf maximal 80 Zeichen haben.";
-    if (description.length > 300)
-      return "Die Beschreibung darf maximal 300 Zeichen haben.";
-    if (!category) return "Bitte wähle eine Kategorie.";
+    if (!form.title.trim()) return "Bitte gib einen Titel ein.";
+    if (form.title.length > TITLE_MAX)
+      return `Der Titel darf maximal ${TITLE_MAX} Zeichen haben.`;
+    if (form.description.length > DESCRIPTION_MAX)
+      return `Die Beschreibung darf maximal ${DESCRIPTION_MAX} Zeichen haben.`;
+    if (!form.category) return "Bitte wähle eine Kategorie.";
     return null;
   };
 
   const validateStep2 = (): string | null => {
-    if (places.length === 0) return "Bitte füge mindestens einen Ort hinzu.";
+    if (places.length < PLACES_MIN)
+      return `Bitte füge mindestens ${PLACES_MIN} Orte hinzu.`;
+    if (places.length > PLACES_MAX)
+      return `Maximal ${PLACES_MAX} Orte erlaubt.`;
+    const invalidDesc = places.find(
+      (p) => p.description.length > PLACE_DESCRIPTION_MAX
+    );
+    if (invalidDesc)
+      return `Die Beschreibung für "${invalidDesc.place.name}" darf maximal ${PLACE_DESCRIPTION_MAX} Zeichen haben.`;
     return null;
   };
 
@@ -122,7 +151,7 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
     }
   };
 
-  const handleSubmit = async () => {
+  const handlePublish = async (isDraft: boolean) => {
     setError(null);
     setIsSubmitting(true);
 
@@ -134,11 +163,12 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
     }
 
     const result = await createCollab({
-      cover_emoji: emoji,
-      title: title.trim(),
-      description: description.trim() || null,
-      category,
+      cover_emoji: form.cover_emoji,
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      category: form.category,
       chatroom_id: chatroomId || null,
+      is_public: !isDraft,
       items: places.map((p, i) => {
         const place = p.place;
         const mapsUrl =
@@ -162,41 +192,77 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
       setError(result.error);
       toast(result.error, "error");
     } else if (result?.id) {
-      toast("Collab erfolgreich erstellt!", "success");
-      router.push(`/collabs/${result.id}`);
+      setCreatedCollabId(result.id);
+      setCreatedIsPublic(!isDraft);
+      toast(
+        isDraft ? "Entwurf gespeichert!" : "Collab veröffentlicht!",
+        "success"
+      );
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleShare = async () => {
+    if (!createdCollabId) return;
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/collabs/${createdCollabId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: form.title,
+          text: form.description || form.title,
+          url,
+        });
+        toast("Geteilt!", "success");
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          await navigator.clipboard.writeText(url);
+          toast("Link in Zwischenablage kopiert", "success");
+        }
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast("Link in Zwischenablage kopiert", "success");
     }
   };
 
-  return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      {/* Fortschrittsanzeige */}
-      <div className="relative">
-        <div
-          className="absolute left-0 right-0 top-5 h-0.5 -translate-y-1/2 bg-warm"
-          style={{
-            background: `linear-gradient(90deg, #2D4A3E 0%, #2D4A3E ${(step / 3) * 100}%, #EDE8E1 ${(step / 3) * 100}%, #EDE8E1 100%)`,
-          }}
-        />
-        <div className="relative flex justify-between">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex flex-col items-center">
-              <div
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white",
-                  step >= s ? "bg-forest" : "bg-warm text-sage"
-                )}
-              >
-                {s}
-              </div>
-              <span className="mt-2 text-xs text-sage">
-                {s === 1 && "Grundinfos"}
-                {s === 2 && "Orte"}
-                {s === 3 && "Vorschau"}
-              </span>
-            </div>
-          ))}
+  const stepLabels = ["Grundinfos", "Orte", "Vorschau"];
+
+  if (createdCollabId) {
+    return (
+      <div className="mx-auto max-w-2xl py-12 text-center">
+        <div className="mb-4 text-5xl" role="img" aria-hidden>
+          🎉
+        </div>
+        <h2 className="mb-2 font-serif text-2xl font-semibold text-forest">
+          Collab erstellt!
+        </h2>
+        <p className="mb-8 text-sage">
+          {createdIsPublic
+            ? "Deine Liste ist jetzt öffentlich sichtbar."
+            : "Dein Entwurf wurde gespeichert."}
+        </p>
+        <div className="flex justify-center gap-3">
+          <Link
+            href={`/collabs/${createdCollabId}`}
+            className="rounded-lg bg-forest px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-forest/90"
+          >
+            Collab ansehen
+          </Link>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="rounded-lg border-2 border-sage px-4 py-2 text-sm font-medium text-forest transition-colors hover:bg-sage/10"
+          >
+            Teilen
+          </button>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-8">
+      <StepProgress steps={stepLabels} currentStep={step - 1} />
 
       {error && (
         <div className="rounded-lg border border-peach/50 bg-peach/10 px-4 py-3 text-sm text-peach">
@@ -211,15 +277,17 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
             <label className="mb-2 block text-sm font-medium text-forest">
               Emoji
             </label>
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
               {EMOJIS.map((e) => (
                 <button
                   key={e}
                   type="button"
-                  onClick={() => setEmoji(e)}
+                  onClick={() =>
+                    setForm((f) => ({ ...f, cover_emoji: e }))
+                  }
                   className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-lg text-2xl transition-colors",
-                    emoji === e
+                    "flex h-10 w-10 items-center justify-center rounded-lg text-xl transition-colors sm:h-12 sm:w-12 sm:text-2xl",
+                    form.cover_emoji === e
                       ? "bg-forest text-cream ring-2 ring-forest"
                       : "bg-warm hover:bg-sage/20"
                   )}
@@ -230,43 +298,59 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
             </div>
           </div>
 
-          <Input
-            label="Titel"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="z.B. Beste Cafés in München"
-            maxLength={80}
-            required
-          />
+          <div>
+            <Input
+              label="Titel"
+              value={form.title}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, title: e.target.value }))
+              }
+              placeholder="z.B. Beste Cafés in München"
+              maxLength={TITLE_MAX}
+              required
+            />
+            <p className="mt-1 text-right text-xs text-sage">
+              {form.title.length}/{TITLE_MAX}
+            </p>
+          </div>
           <div>
             <Textarea
-              label="Beschreibung"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              label="Beschreibung (optional)"
+              value={form.description}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
               placeholder="Worum geht es in dieser Liste?"
-              maxLength={300}
+              maxLength={DESCRIPTION_MAX}
               rows={3}
             />
             <p className="mt-1 text-right text-xs text-sage">
-              {description.length}/300
+              {form.description.length}/{DESCRIPTION_MAX}
             </p>
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-forest">
               Kategorie
             </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border-2 border-warm bg-cream px-3 py-2.5 text-forest focus:border-sage focus:outline-none focus:ring-2 focus:ring-sage"
-            >
-              <option value="">Bitte wählen</option>
+            <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({ ...f, category: c }))
+                  }
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    form.category === c
+                      ? "bg-forest text-white"
+                      : "bg-warm text-sage hover:bg-sage/20 hover:text-forest"
+                  )}
+                >
                   {c}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-forest">
@@ -292,7 +376,7 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
       {step === 2 && (
         <div className="space-y-4">
           <p className="text-sm text-sage">
-            Füge mindestens einen Ort hinzu. Ziehe die Karten zum Sortieren.
+            Füge 2–20 Orte hinzu. Ziehe zum Sortieren oder nutze die Pfeile.
           </p>
           {places.map((item, index) => (
             <div
@@ -307,8 +391,26 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
               }}
               className="flex items-start gap-3 rounded-xl border border-warm bg-cream/30 p-4 cursor-grab active:cursor-grabbing"
             >
-              <div className="mt-1 shrink-0 text-sage">
+              <div className="mt-1 flex shrink-0 flex-col items-center gap-0.5 text-sage">
                 <GripVertical className="h-5 w-5" aria-hidden />
+                <button
+                  type="button"
+                  onClick={() => movePlace(index, "up")}
+                  disabled={index === 0}
+                  className="rounded p-0.5 hover:bg-sage/20 disabled:opacity-30"
+                  aria-label="Nach oben"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => movePlace(index, "down")}
+                  disabled={index === places.length - 1}
+                  className="rounded p-0.5 hover:bg-sage/20 disabled:opacity-30"
+                  aria-label="Nach unten"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
               </div>
               <div className="flex h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-warm">
                 {item.place.img_url ? (
@@ -331,7 +433,7 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
                   <button
                     type="button"
                     onClick={() => removePlace(item.place.id)}
-                    disabled={places.length <= 1}
+                    disabled={places.length <= PLACES_MIN}
                     className="rounded p-1 text-sage hover:bg-peach/20 hover:text-peach disabled:opacity-50"
                     aria-label="Ort entfernen"
                   >
@@ -341,15 +443,21 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
                 {item.place.category && (
                   <p className="text-xs text-sage">{item.place.category}</p>
                 )}
-                <Textarea
-                  placeholder="Optionale Beschreibung für diesen Ort…"
-                  value={item.description}
-                  onChange={(e) =>
-                    updatePlaceDescription(item.place.id, e.target.value)
-                  }
-                  rows={2}
-                  className="mt-2 border-warm text-sm"
-                />
+                <div className="mt-2">
+                  <Textarea
+                    placeholder="Optionale Beschreibung (max 100 Zeichen)"
+                    value={item.description}
+                    onChange={(e) =>
+                      updatePlaceDescription(item.place.id, e.target.value)
+                    }
+                    maxLength={PLACE_DESCRIPTION_MAX}
+                    rows={2}
+                    className="border-warm text-sm"
+                  />
+                  <p className="mt-0.5 text-right text-xs text-sage">
+                    {item.description.length}/{PLACE_DESCRIPTION_MAX}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
@@ -357,62 +465,75 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
             type="button"
             variant="outline"
             onClick={() => setShowPlacePicker(true)}
+            disabled={places.length >= PLACES_MAX}
             className="w-full"
           >
             <Plus className="mr-2 h-4 w-4" />
             Ort hinzufügen
+            {places.length >= PLACES_MAX && ` (max ${PLACES_MAX})`}
           </Button>
         </div>
       )}
 
-      {/* SCHRITT 3 */}
+      {/* SCHRITT 3 – Vorschau wie /collabs/[id] */}
       {step === 3 && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-warm bg-cream/30 p-6">
-            <h3 className="font-semibold text-forest">Vorschau</h3>
-            <div className="mt-4 flex items-start gap-4">
-              <span className="text-5xl">{emoji}</span>
+        <div className="space-y-8">
+          <div className="rounded-xl border border-warm bg-cream/30 p-6 sm:p-8">
+            <div className="flex items-start gap-4">
+              <span
+                className="block text-[80px] leading-none"
+                role="img"
+                aria-hidden
+              >
+                {form.cover_emoji}
+              </span>
               <div>
-                <Badge variant="green" className="mb-1">
-                  {category}
+                <Badge variant="green" className="mb-2">
+                  {form.category}
                 </Badge>
-                <h2 className="font-bold text-forest">{title}</h2>
-                {description && (
-                  <p className="mt-1 text-sm text-sage">{description}</p>
+                <h1 className="font-serif text-2xl font-bold text-forest sm:text-3xl">
+                  {form.title}
+                </h1>
+                {form.description && (
+                  <p className="mt-2 text-sage">{form.description}</p>
                 )}
               </div>
             </div>
-            <ul className="mt-6 space-y-2">
+          </div>
+
+          <section>
+            <h2 className="mb-4 font-semibold text-forest">Orte</h2>
+            <div className="space-y-4">
               {places.map((item, i) => (
-                <li key={item.place.id} className="flex items-center gap-2 text-sm">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest text-xs text-white">
+                <div
+                  key={item.place.id}
+                  className="flex gap-4 rounded-xl border border-warm bg-white p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-forest text-sm font-medium text-white">
                     {i + 1}
-                  </span>
-                  <div className="flex h-8 w-8 shrink-0 overflow-hidden rounded">
-                    {item.place.img_url ? (
-                      <img
-                        src={item.place.img_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center bg-warm text-xs">
-                        📍
-                      </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-forest">
+                      {item.place.name}
+                    </h3>
+                    {item.description && (
+                      <p className="mt-1 text-sm text-sage">
+                        {item.description}
+                      </p>
                     )}
                   </div>
-                  <span className="text-forest">{item.place.name}</span>
-                </li>
+                </div>
               ))}
-            </ul>
-            {chatroomId && (
-              <p className="mt-4 text-sm text-sage">
-                Verknüpfter Chatroom:{" "}
-                {chatrooms.find((r) => r.id === chatroomId)?.name}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+            </div>
+          </section>
+
+          {chatroomId && (
+            <p className="text-sm text-sage">
+              Verknüpfter Chatroom:{" "}
+              {chatrooms.find((r) => r.id === chatroomId)?.name}
+            </p>
+          )}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={() => setStep(2)}
@@ -420,14 +541,23 @@ export function CollabNewForm({ chatrooms }: CollabNewFormProps) {
             >
               Zurück bearbeiten
             </button>
-            <Button
-              onClick={handleSubmit}
-              isLoading={isSubmitting}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto"
-            >
-              Veröffentlichen
-            </Button>
+            <div className="flex flex-1 gap-3 sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => handlePublish(true)}
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                Entwurf speichern
+              </Button>
+              <Button
+                onClick={() => handlePublish(false)}
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                Veröffentlichen
+              </Button>
+            </div>
           </div>
         </div>
       )}

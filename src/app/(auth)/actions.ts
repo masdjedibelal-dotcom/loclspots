@@ -11,10 +11,10 @@ export async function login(
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const redirectTo = (formData.get("redirect") as string) || "/dashboard";
+  const redirectTo = (formData.get("returnUrl") as string) || (formData.get("redirect") as string) || "/home";
   const safeRedirect = redirectTo.startsWith("/") && !redirectTo.startsWith("//")
     ? redirectTo
-    : "/dashboard";
+    : "/home";
 
   if (!email || !password) {
     return { error: "E-Mail und Passwort sind erforderlich." };
@@ -42,10 +42,10 @@ export async function register(
   const password = formData.get("password") as string;
   const displayName = formData.get("display_name") as string;
   const username = (formData.get("username") as string)?.toLowerCase().trim();
-  const redirectTo = (formData.get("redirect") as string) || "/dashboard";
+  const redirectTo = (formData.get("returnUrl") as string) || (formData.get("redirect") as string) || "/home";
   const safeRedirect = redirectTo.startsWith("/") && !redirectTo.startsWith("//")
     ? redirectTo
-    : "/dashboard";
+    : "/home";
 
   if (!email || !password || !displayName || !username) {
     return { error: "Alle Felder sind erforderlich." };

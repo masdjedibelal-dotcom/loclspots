@@ -30,7 +30,7 @@ export default async function AppLayout({
     <div className="flex min-h-screen bg-cream">
       <AppSidebar displayName={displayName} avatarUrl={avatarUrl} />
       <main className="flex-1 pb-20 lg:pb-0">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
           {children}
         </div>
       </main>

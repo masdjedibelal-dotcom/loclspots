@@ -1,49 +1,63 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { EventCard } from "@/components/events/EventCard";
+import { Pagination } from "@/components/ui/Pagination";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-interface EventsClientProps {
-  upcomingEvents: Event[];
-  pastEvents: Event[];
-  categories: string[];
-  participantIds: string[];
-  currentUserId: string;
-}
 
 const CATEGORY_EMOJI: Record<string, string> = {
   Konzerte: "🎵",
   Klassik: "🎻",
   Theater: "🎭",
+  "Party & Club": "🎉",
+  "Kabarett & Comedy": "🎤",
+  Ausstellungen: "🖼️",
+  Sport: "⚽",
+  "Märkte & Flohmärkte": "🛒",
   Shows: "🎪",
   Kabarett: "🎤",
   Sonstiges: "📌",
 };
 
+const FILTER_TABS = [
+  { id: "all", label: "Alle" },
+  { id: "Konzerte", label: "Konzerte" },
+  { id: "Theater", label: "Theater" },
+  { id: "Party & Club", label: "Party & Club" },
+  { id: "Kabarett & Comedy", label: "Kabarett & Comedy" },
+  { id: "Ausstellungen", label: "Ausstellungen" },
+  { id: "Sport", label: "Sport" },
+  { id: "Märkte & Flohmärkte", label: "Märkte & Flohmärkte" },
+  { id: "Sonstiges", label: "Sonstiges" },
+] as const;
+
+interface EventsClientProps {
+  events: Event[];
+  totalPages: number;
+  currentPage: number;
+  categoryFilter: string;
+  participantIds: string[];
+  currentUserId: string;
+}
+
+function buildFilterUrl(category: string): string {
+  if (category === "all") return "/events";
+  return `/events?category=${encodeURIComponent(category)}`;
+}
+
 export function EventsClient({
-  upcomingEvents,
-  pastEvents,
-  categories,
+  events,
+  totalPages,
+  currentPage,
+  categoryFilter,
   participantIds,
   currentUserId,
 }: EventsClientProps) {
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [showPastEvents, setShowPastEvents] = useState(false);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
-
-  const filteredUpcoming =
-    !categoryFilter
-      ? upcomingEvents
-      : upcomingEvents.filter((e) => e.category === categoryFilter);
-
-  const filteredPast =
-    !categoryFilter
-      ? pastEvents
-      : pastEvents.filter((e) => e.category === categoryFilter);
 
   return (
     <div className="space-y-8">
@@ -66,47 +80,40 @@ export function EventsClient({
         </Button>
       </div>
 
-      {/* Filter */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setCategoryFilter("")}
-          className={cn(
-            "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-            !categoryFilter
-              ? "bg-forest text-white"
-              : "bg-warm text-sage hover:bg-sage/20"
-          )}
-        >
-          Alle
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setCategoryFilter(cat)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-              categoryFilter === cat
-                ? "bg-forest text-white"
-                : "bg-warm text-sage hover:bg-sage/20"
-            )}
-          >
-            {CATEGORY_EMOJI[cat] ?? "📌"} {cat}
-          </button>
-        ))}
+      {/* Kategorie-Filter: horizontal scrollbar */}
+      <div
+        className="-mx-4 flex flex-nowrap gap-2 overflow-x-auto px-4 pb-4 scrollbar-hide md:mx-0 md:px-0"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {FILTER_TABS.map((tab) => {
+          const isActive = categoryFilter === tab.id;
+          return (
+            <Link
+              key={tab.id}
+              href={buildFilterUrl(tab.id)}
+              className={cn(
+                "whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-forest text-white"
+                  : "border border-sage/40 bg-transparent text-sage hover:border-forest hover:bg-forest/10 hover:text-forest"
+              )}
+            >
+              {CATEGORY_EMOJI[tab.id] ?? "📌"} {tab.label}
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Kommende Events */}
+      {/* Event-Liste */}
       <section>
         <h2 className="mb-4 font-semibold text-forest">Kommende Events</h2>
-        {filteredUpcoming.length === 0 ? (
+        {events.length === 0 ? (
           <p className="py-8 text-center text-sage">
             Keine kommenden Events in dieser Kategorie.
           </p>
         ) : (
           <div className="space-y-4">
-            {filteredUpcoming.map((event) => (
+            {events.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}
@@ -119,44 +126,17 @@ export function EventsClient({
         )}
       </section>
 
-      {/* Vergangene Events */}
-      {filteredPast.length > 0 && (
-        <section>
-          <button
-            type="button"
-            onClick={() => setShowPastEvents(!showPastEvents)}
-            className="flex w-full items-center justify-between rounded-lg border border-warm bg-cream/30 px-4 py-3 text-left text-forest transition-colors hover:bg-cream/50"
-          >
-            <span className="font-medium">
-              {filteredPast.length} vergangene
-              {filteredPast.length !== 1 ? " Events" : " Event"} anzeigen
-            </span>
-            <span
-              className={cn(
-                "text-sage transition-transform",
-                showPastEvents && "rotate-180"
-              )}
-            >
-              ▼
-            </span>
-          </button>
-          {showPastEvents && (
-            <div className="mt-4 space-y-4">
-              {filteredPast.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  currentUserId={currentUserId}
-                  isParticipating={participantIds.includes(event.id)}
-                  categoryEmoji={CATEGORY_EMOJI[event.category ?? ""] ?? "📌"}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath="/events"
+        searchParams={
+          categoryFilter !== "all" ? { category: categoryFilter } : undefined
+        }
+      />
 
-      {/* Event vorschlagen Modal (optional, Platzhalter) */}
+      {/* Event vorschlagen Modal */}
       {showSuggestModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"

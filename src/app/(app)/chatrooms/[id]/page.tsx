@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getMessages } from "@/lib/messages";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { Avatar } from "@/components/ui/Avatar";
-import type { Chatroom, Message, Profile } from "@/lib/types";
+import type { Chatroom, Profile } from "@/lib/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,32 +36,16 @@ export default async function ChatroomPage({ params }: PageProps) {
 
   if (!membership) redirect("/chatrooms");
 
-  const { data: rawMessages } = await supabase
-    .from("messages")
-    .select("id, chatroom_id, user_id, content, created_at")
+  const messages = await getMessages(supabase, id, 50);
+
+  const { data: readRow } = await supabase
+    .from("message_reads")
+    .select("last_read_at")
+    .eq("user_id", user.id)
     .eq("chatroom_id", id)
-    .order("created_at", { ascending: true })
-    .limit(50);
+    .single();
 
-  const messages: Message[] = [];
-  if (rawMessages?.length) {
-    const userIds = Array.from(new Set(rawMessages.map((m) => m.user_id)));
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, username, display_name, avatar_url")
-      .in("id", userIds);
-
-    const profileMap = new Map(
-      (profiles ?? []).map((p) => [p.id, p as Profile])
-    );
-
-    for (const m of rawMessages) {
-      messages.push({
-        ...m,
-        profile: profileMap.get(m.user_id) ?? undefined,
-      });
-    }
-  }
+  const lastReadAt = readRow?.last_read_at ?? null;
 
   const { data: members } = await supabase
     .from("chatroom_members")
@@ -97,6 +82,7 @@ export default async function ChatroomPage({ params }: PageProps) {
           memberCount={chatroomData.member_count}
           initialMessages={messages}
           currentUserId={user.id}
+          initialLastReadAt={lastReadAt}
         />
       </div>
 
@@ -118,9 +104,8 @@ export default async function ChatroomPage({ params }: PageProps) {
                 title={profile.display_name}
               >
                 <Avatar
-                  avatarUrl={profile.avatar_url}
-                  displayName={profile.display_name}
-                  username={profile.username ?? ""}
+                  url={profile.avatar_url}
+                  name={profile.display_name}
                   size="sm"
                 />
               </div>

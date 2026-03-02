@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/Avatar";
+import { useRouter } from "next/navigation";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -53,6 +54,7 @@ export function ProfilClient({
   myEvents,
   currentUserId,
 }: ProfilClientProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabId>("collabs");
   const [isEditing, setIsEditing] = useState(false);
@@ -111,11 +113,10 @@ export function ProfilClient({
       {/* Oberer Bereich */}
       <div className="rounded-xl border border-warm bg-cream/30 p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-          <Avatar
-            avatarUrl={profile.avatar_url}
-            displayName={profile.display_name}
-            username={profile.username}
-            size="xl"
+          <AvatarUpload
+            userId={currentUserId}
+            currentAvatarUrl={profile.avatar_url}
+            onUploadComplete={() => router.refresh()}
           />
           <div className="flex-1 text-center sm:text-left">
             <h1 className="font-serif text-2xl font-bold text-forest sm:text-3xl">
@@ -245,7 +246,7 @@ export function ProfilClient({
 
         <div className="mt-6">
           {activeTab === "collabs" && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
               {myCollabs.map((collab) => (
                 <CollabCard
                   key={collab.id}

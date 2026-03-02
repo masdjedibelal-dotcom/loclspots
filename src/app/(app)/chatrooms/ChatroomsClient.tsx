@@ -4,49 +4,62 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ChatroomCard } from "@/components/chat/ChatroomCard";
 import { Input } from "@/components/ui/Input";
-import { cn } from "@/lib/utils";
 import type { Chatroom } from "@/lib/types";
 
 interface ChatroomsClientProps {
   chatrooms: Chatroom[];
   memberIds: string[];
+  unreadCounts?: Record<string, number>;
 }
-
-const CATEGORIES = [
-  { value: "all", label: "Alle" },
-  { value: "Kultur & Stadtleben", label: "Kultur" },
-  { value: "Outdoor & Natur", label: "Outdoor" },
-  { value: "Sport & Fitness", label: "Sport" },
-  { value: "Brettspiele", label: "Brettspiele" },
-  { value: "Neu in der Stadt", label: "Neu in der Stadt" },
-  { value: "Tanzen & Bewegung", label: "Tanzen" },
-  { value: "Kochen & Genuss", label: "Kochen" },
-  { value: "Schwarzes Brett", label: "Sonstiges" },
-];
 
 export function ChatroomsClient({
   chatrooms,
   memberIds: memberIdsArray,
+  unreadCounts = {},
 }: ChatroomsClientProps) {
   const memberIds = useMemo(
     () => new Set(memberIdsArray),
     [memberIdsArray]
   );
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
 
-  const filteredChatrooms = useMemo(() => {
-    return chatrooms.filter((room) => {
-      const matchesSearch =
-        !search ||
-        room.name.toLowerCase().includes(search.toLowerCase()) ||
-        (room.description ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        room.category.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
-        category === "all" || room.category === category;
-      return matchesSearch && matchesCategory;
-    });
-  }, [chatrooms, search, category]);
+  const categories = useMemo(
+    () =>
+      chatrooms
+        .filter((c) => c.is_category)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+    [chatrooms]
+  );
+
+  const subcategories = useMemo(
+    () => chatrooms.filter((c) => !c.is_category),
+    [chatrooms]
+  );
+
+  const filteredBySearch = useMemo(() => {
+    if (!search.trim()) return { categories, subcategories };
+    const q = search.toLowerCase().trim();
+    const matches = (r: Chatroom) =>
+      r.name.toLowerCase().includes(q) ||
+      (r.description ?? "").toLowerCase().includes(q) ||
+      (r.category ?? "").toLowerCase().includes(q);
+    const filteredSub = subcategories.filter(matches);
+    const categoriesWithMatches = categories.filter(
+      (cat) =>
+        matches(cat) ||
+        filteredSub.some((s) => s.parent_id === cat.id)
+    );
+    return {
+      categories: categoriesWithMatches,
+      subcategories: filteredSub,
+    };
+  }, [search, categories, subcategories]);
+
+  const orphans = useMemo(
+    () =>
+      filteredBySearch.subcategories.filter((s) => !s.parent_id),
+    [filteredBySearch.subcategories]
+  );
 
   return (
     <div className="space-y-6">
@@ -59,39 +72,65 @@ export function ChatroomsClient({
           className="pl-10"
         />
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.value}
-            type="button"
-            onClick={() => setCategory(cat.value)}
-            className={cn(
-              "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-              category === cat.value
-                ? "bg-forest text-cream"
-                : "bg-warm text-sage hover:bg-sage/20 hover:text-forest"
-            )}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredChatrooms.map((room) => (
-          <ChatroomCard
-            key={room.id}
-            chatroom={room}
-            isMember={memberIds.has(room.id)}
-            isActive={(room.member_count ?? 0) > 0}
-          />
-        ))}
-      </div>
+      {/* Gruppiert: Kategorien als Überschriften, Unterkategorien darunter */}
+      {filteredBySearch.categories.map((cat) => {
+        const children = filteredBySearch.subcategories
+          .filter((s) => s.parent_id === cat.id)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-      {filteredChatrooms.length === 0 && (
+        return (
+          <div key={cat.id} className="mb-6">
+            <div className="mb-2 flex items-center gap-2 px-1 py-2">
+              <span className="text-xl" role="img" aria-hidden>
+                {cat.emoji}
+              </span>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-sage">
+                {cat.name}
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+              {children.map((room) => (
+                <ChatroomCard
+                  key={room.id}
+                  chatroom={room}
+                  isMember={memberIds.has(room.id)}
+                  isActive={(room.member_count ?? 0) > 0}
+                  unreadCount={unreadCounts[room.id] ?? 0}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Chatrooms ohne Parent */}
+      {orphans.length > 0 && (
+        <div className="mb-6">
+          <div className="mb-2 flex items-center gap-2 px-1 py-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-sage">
+              Weitere
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+            {orphans
+              .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+              .map((room) => (
+                <ChatroomCard
+                  key={room.id}
+                  chatroom={room}
+                  isMember={memberIds.has(room.id)}
+                  isActive={(room.member_count ?? 0) > 0}
+                  unreadCount={unreadCounts[room.id] ?? 0}
+                />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {filteredBySearch.categories.length === 0 && orphans.length === 0 && (
         <p className="py-12 text-center text-sage">
-          Keine Chatrooms gefunden. Versuche einen anderen Suchbegriff oder
-          Kategorie.
+          Keine Chatrooms gefunden. Versuche einen anderen Suchbegriff.
         </p>
       )}
     </div>

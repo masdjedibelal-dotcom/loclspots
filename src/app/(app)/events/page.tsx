@@ -3,16 +3,31 @@ import { createClient } from "@/lib/supabase/server";
 import { EventsClient } from "./EventsClient";
 import type { Event } from "@/lib/types";
 
+const ITEMS_PER_PAGE = 12;
+
 const CATEGORIES = [
   "Konzerte",
-  "Klassik",
   "Theater",
-  "Shows",
-  "Kabarett",
+  "Party & Club",
+  "Kabarett & Comedy",
+  "Ausstellungen",
+  "Sport",
+  "Märkte & Flohmärkte",
   "Sonstiges",
 ] as const;
 
-export default async function EventsPage() {
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; category?: string }>;
+}) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+  const categoryFilter =
+    params.category && CATEGORIES.includes(params.category as (typeof CATEGORIES)[number])
+      ? params.category
+      : undefined;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,15 +35,26 @@ export default async function EventsPage() {
 
   if (!user) redirect("/login");
 
-  const now = new Date().toISOString().slice(0, 19);
+  const offset = (page - 1) * ITEMS_PER_PAGE;
+  const today = new Date().toISOString().split("T")[0];
 
-  const { data: allEvents } = await supabase
+  let query = supabase
     .from("events")
     .select(
-      "id, title, description, date, start_date, start_time, start_datetime, end_date, end_time, end_datetime, venue_name, venue_id, category, tags, source, source_url, is_public, is_cancelled, cover_image_url, lat, lng, created_at, updated_at, highlights"
+      "id, title, description, start_date, start_time, start_datetime, venue_name, category, cover_image_url, source_url, is_cancelled",
+      { count: "exact" }
     )
     .eq("is_cancelled", false)
-    .order("date", { ascending: true, nullsFirst: false });
+    .eq("is_public", true)
+    .gte("start_date", today)
+    .order("start_date", { ascending: true, nullsFirst: false })
+    .range(offset, offset + ITEMS_PER_PAGE - 1);
+
+  if (categoryFilter) {
+    query = query.eq("category", categoryFilter);
+  }
+
+  const { data: eventsData, count } = await query;
 
   const { data: participantRows } = await supabase
     .from("event_participants")
@@ -44,37 +70,20 @@ export default async function EventsPage() {
     if (p.user_id === user.id) myParticipantIds.add(p.event_id);
   }
 
-  const eventsWithExtras: Event[] = (allEvents ?? []).map((e) => ({
+  const events: Event[] = (eventsData ?? []).map((e) => ({
     ...e,
     participant_count: participantCountMap.get(e.id) ?? 0,
     is_participating: myParticipantIds.has(e.id),
   }));
 
-  const upcomingEvents = eventsWithExtras.filter((e) => {
-    const dt = e.start_datetime ?? e.start_date ?? e.date ?? e.created_at;
-    return dt && dt >= now;
-  });
-
-  const pastEvents = eventsWithExtras.filter((e) => {
-    const dt = e.start_datetime ?? e.start_date ?? e.date ?? e.created_at;
-    return !dt || dt < now;
-  });
-
-  const categoriesInData = Array.from(
-    new Set(
-      (allEvents ?? [])
-        .map((e) => e.category)
-        .filter((c): c is string => !!c)
-    )
-  ).sort();
-  const filterCategories =
-    categoriesInData.length > 0 ? categoriesInData : [...CATEGORIES];
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / ITEMS_PER_PAGE));
 
   return (
     <EventsClient
-      upcomingEvents={upcomingEvents}
-      pastEvents={pastEvents}
-      categories={filterCategories}
+      events={events}
+      totalPages={totalPages}
+      currentPage={page}
+      categoryFilter={categoryFilter ?? "all"}
       participantIds={Array.from(myParticipantIds)}
       currentUserId={user.id}
     />

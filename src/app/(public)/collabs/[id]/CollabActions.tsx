@@ -79,7 +79,7 @@ export function CollabActions({
       </button>
       {chatroom && (
         <Link
-          href={isLoggedIn ? `/chatrooms/${chatroom.id}` : `/login?redirect=${encodeURIComponent(`/chatrooms/${chatroom.id}`)}`}
+          href={isLoggedIn ? `/chatrooms/${chatroom.id}` : `/login?returnUrl=${encodeURIComponent(`/chatrooms/${chatroom.id}`)}`}
           className="flex items-center gap-2 rounded-full border-2 border-sage px-5 py-2.5 font-medium text-forest transition-colors hover:bg-sage hover:text-white"
         >
           <span>{chatroom.emoji}</span>

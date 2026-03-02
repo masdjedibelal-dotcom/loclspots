@@ -17,6 +17,7 @@ interface CreateCollabInput {
   category: string;
   chatroom_id: string | null;
   items: CollabItemInput[];
+  is_public: boolean;
 }
 
 export async function createCollab(input: CreateCollabInput) {
@@ -34,10 +35,10 @@ export async function createCollab(input: CreateCollabInput) {
     .insert({
       title: input.title,
       description: input.description || null,
-      owner_id: user.id,
+      category: input.category,
+      cover_emoji: input.cover_emoji,
       creator_id: user.id,
-      is_public: true,
-      cover_media_urls: [input.cover_emoji],
+      is_public: input.is_public,
     })
     .select("id")
     .single();

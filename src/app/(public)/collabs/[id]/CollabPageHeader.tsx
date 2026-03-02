@@ -24,18 +24,32 @@ export function CollabPageHeader() {
         </Link>
         <div className="flex items-center gap-4">
           <Link
+            href="/artikel"
+            className="text-[14px] font-medium text-sage hover:text-forest"
+          >
+            Artikel
+          </Link>
+          <Link
             href="/collabs"
             className="text-[14px] font-medium text-sage hover:text-forest"
           >
             Alle Collabs
           </Link>
           {isLoggedIn ? (
-            <Link
-              href="/dashboard"
-              className="text-[14px] font-medium text-sage hover:text-forest"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                href="/chatrooms"
+                className="text-[14px] font-medium text-sage hover:text-forest"
+              >
+                Chatrooms
+              </Link>
+              <Link
+                href="/home"
+                className="text-[14px] font-medium text-sage hover:text-forest"
+              >
+                Dashboard
+              </Link>
+            </>
           ) : (
             <Link
               href="/login"

@@ -87,9 +87,8 @@ export function CollabDetail({
               {profile && (
                 <div className="mt-4 flex items-center gap-3">
                   <Avatar
-                    avatarUrl={profile.avatar_url}
-                    displayName={profile.display_name}
-                    username={profile.username ?? ""}
+                    url={profile.avatar_url}
+                    name={profile.display_name}
                     size="sm"
                   />
                   <div>

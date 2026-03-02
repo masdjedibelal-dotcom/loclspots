@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/Input";
 
 function RegisterForm() {
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") ?? "/dashboard";
+  const returnUrl = searchParams.get("returnUrl") ?? searchParams.get("redirect") ?? "/home";
   const [state, formAction] = useFormState(register, null);
 
   return (
     <form action={formAction} className="space-y-5">
-      <input type="hidden" name="redirect" value={redirect} />
+      <input type="hidden" name="returnUrl" value={returnUrl} />
       <div>
         <h2 className="text-xl font-semibold text-forest">Registrieren</h2>
         <p className="mt-1 text-sm text-sage">
@@ -75,7 +75,7 @@ function RegisterForm() {
       <p className="text-center text-sm text-sage">
         Bereits registriert?{" "}
         <Link
-          href="/login"
+          href={returnUrl !== "/home" ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login"}
           className="font-medium text-forest underline decoration-sage/50 underline-offset-2 hover:decoration-forest"
         >
           Jetzt anmelden
