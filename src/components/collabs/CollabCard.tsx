@@ -59,7 +59,7 @@ export function CollabCard({ collab, itemCount }: CollabCardProps) {
             {collab.title}
           </h3>
           {collab.description && (
-            <p className="mt-1 line-clamp-3 text-sm text-sage">
+            <p className="mt-1 line-clamp-2 text-sm text-sage">
               {collab.description}
             </p>
           )}
@@ -68,9 +68,8 @@ export function CollabCard({ collab, itemCount }: CollabCardProps) {
             {profile && (
               <div className="flex items-center gap-2">
                 <Avatar
-                  avatarUrl={profile.avatar_url}
-                  displayName={profile.display_name}
-                  username={profile.username ?? ""}
+                  url={profile.avatar_url}
+                  name={profile.display_name}
                   size="sm"
                 />
                 <span className="max-w-[80px] truncate text-xs text-sage">

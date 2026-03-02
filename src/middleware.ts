@@ -1,33 +1,32 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register"];
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/chatrooms",
-  "/collabs",
-  "/events",
-  "/profil",
+const PUBLIC_PATTERNS = [
+  /^\/$/,
+  /^\/login$/,
+  /^\/register$/,
+  /^\/artikel$/,
+  /^\/artikel\/[^/]+$/, // /artikel/[slug]
+  /^\/collabs$/,
+  /^\/collabs\/[^/]+$/, // /collabs/[id] – außer /collabs/new (UUID vs "new" – new wird geprüft)
+  /^\/events$/,
+  /^\/events\/[^/]+$/, // /events/[id]
 ];
 
-function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.includes(pathname);
-}
+const PROTECTED_PREFIXES = ["/dashboard", "/home", "/chatrooms", "/entdecken", "/profil"];
 
-/** Öffentliche Collab-Detailseite: /collabs/[id] (nicht /collabs/new oder /collabs/[id]/edit) */
-function isPublicCollabDetail(pathname: string): boolean {
-  const parts = pathname.split("/").filter(Boolean);
-  return (
-    parts.length === 2 &&
-    parts[0] === "collabs" &&
-    parts[1] !== "new"
-  );
+function isPublicRoute(pathname: string): boolean {
+  if (pathname === "/collabs/new" || /^\/collabs\/[^/]+\/edit$/.test(pathname)) {
+    return false;
+  }
+  return PUBLIC_PATTERNS.some((re) => re.test(pathname));
 }
 
 function isProtectedRoute(pathname: string): boolean {
-  if (isPublicCollabDetail(pathname)) return false;
-  return PROTECTED_PREFIXES.some((prefix) =>
-    pathname === prefix || pathname.startsWith(`${prefix}/`)
+  if (isPublicRoute(pathname)) return false;
+  if (pathname === "/collabs/new" || /^\/collabs\/[^/]+\/edit$/.test(pathname)) return true;
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }
 
@@ -65,6 +64,7 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute(request.nextUrl.pathname) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("returnUrl", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 

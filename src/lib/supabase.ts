@@ -29,6 +29,35 @@ export async function getArticles(): Promise<Article[]> {
 }
 
 /**
+ * Lädt Artikel paginiert (für Übersichtsseite).
+ * @param offset 0-basierter Startindex
+ * @param limit Anzahl pro Seite
+ * @param category optional: Kategorie-Filter
+ */
+export async function getArticlesPaginated(
+  offset: number,
+  limit: number,
+  category?: string | null
+): Promise<{ data: Article[]; count: number }> {
+  const supabase = supabasePublic;
+  let query = supabase
+    .from("articles")
+    .select("*", { count: "exact" })
+    .eq("is_public", true)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (category && category !== "all") {
+    query = query.eq("category", category);
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { data: (data ?? []) as Article[], count: count ?? 0 };
+}
+
+/**
  * Lädt die neuesten N Artikel (is_public + is_published).
  * Für Startseite/Blog-Preview.
  */
@@ -64,6 +93,55 @@ export async function getPublicCollabs(): Promise<PublicCollab[]> {
   const { data, error } = await baseQuery;
   if (error) throw error;
   return (data ?? []) as PublicCollab[];
+}
+
+/**
+ * Lädt die neuesten N öffentlichen Collabs (is_public = true).
+ */
+export async function getLatestPublicCollabs(limit: number = 4): Promise<PublicCollab[]> {
+  const supabase = supabasePublic;
+  const baseQuery = supabase
+    .from("collabs")
+    .select("id, title, description, category, cover_emoji, likes_count")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const { data: withFilter, error: err1 } = await baseQuery.eq("is_public", true);
+  if (!err1) return (withFilter ?? []) as PublicCollab[];
+
+  const { data, error } = await baseQuery;
+  if (error) throw error;
+  return (data ?? []).slice(0, limit) as PublicCollab[];
+}
+
+/** Öffentliches Event für Landing-Page */
+export interface PublicEvent {
+  id: string;
+  title: string;
+  start_date?: string | null;
+  start_time?: string | null;
+  venue_name?: string | null;
+  category?: string | null;
+  cover_image_url?: string | null;
+}
+
+/**
+ * Lädt Highlight-Events für die Landing-Page (highlights = true, nicht abgesagt, zukünftig).
+ */
+export async function getHighlightEvents(limit: number = 5): Promise<PublicEvent[]> {
+  const supabase = supabasePublic;
+  const today = new Date().toISOString().split("T")[0];
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, title, start_date, start_time, venue_name, category, cover_image_url")
+    .eq("highlights", true)
+    .eq("is_cancelled", false)
+    .gte("start_date", today)
+    .order("start_date", { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data ?? []) as PublicEvent[];
 }
 
 /**

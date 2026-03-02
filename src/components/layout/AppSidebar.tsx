@@ -6,6 +6,7 @@ import {
   Home,
   MessageCircle,
   BookOpen,
+  FileText,
   Calendar,
   User,
   LogOut,
@@ -14,9 +15,10 @@ import { logout } from "@/app/(app)/actions";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
+  { href: "/home", label: "Home", icon: Home },
   { href: "/chatrooms", label: "Chatrooms", icon: MessageCircle },
   { href: "/collabs", label: "Collabs", icon: BookOpen },
+  { href: "/artikel", label: "Artikel", icon: FileText },
   { href: "/events", label: "Events", icon: Calendar },
   { href: "/profil", label: "Profil", icon: User },
 ];

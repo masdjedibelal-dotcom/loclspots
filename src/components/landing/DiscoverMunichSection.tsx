@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import type { PublicCollab } from "@/lib/supabase";
 
@@ -47,7 +46,6 @@ interface DiscoverMunichSectionProps {
 }
 
 export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
-  const { isLoggedIn } = useAuth();
   const carouselRef = useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<string>("Alle");
 
@@ -75,17 +73,17 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-              Entdecke München
+              Entdecke München — kuratierte Orte von Locals
             </h2>
             <p className="mt-2 text-[18px] font-light leading-relaxed text-muted">
-              Kuratierte Orte und Tipps von Locals
+              Collabs sind Listen zu Themen — von Community-Mitgliedern erstellt, für alle sichtbar. Die besten Restaurants, Bars, Biergärten, Kulturorte und Geheimtipps in München — direkt verknüpft mit dem passenden Chatroom.
             </p>
           </div>
           <Link
-            href={isLoggedIn ? "/collabs" : "/register"}
-            className="shrink-0 text-[15px] font-medium text-sage transition-colors hover:text-forest"
+            href="/collabs"
+            className="shrink-0 text-[15px] font-medium text-forest transition-colors hover:text-forest"
           >
-            Alle anzeigen →
+            Alle Collabs entdecken →
           </Link>
         </div>
 
@@ -133,7 +131,7 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
           {/* Carousel */}
           <div
             ref={carouselRef}
-            className="scrollbar-hide flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:px-1"
+            className="-mx-4 flex gap-4 overflow-x-auto overflow-y-hidden px-4 pb-4 scrollbar-hide scroll-smooth snap-x snap-mandatory md:mx-0 md:px-1"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {filteredCollabs.length === 0 ? (
@@ -146,9 +144,9 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
                   key={collab.id}
                   href={`/collabs/${collab.id}`}
                   className={cn(
-                    "group flex h-[200px] w-[280px] shrink-0 snap-center flex-col overflow-hidden rounded-xl border border-sage/12 bg-white",
+                    "group flex h-[200px] w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-sage/12 bg-white",
                     "transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-forest/10",
-                    "md:w-[280px]"
+                    "sm:w-72 md:w-[280px]"
                   )}
                 >
                   {/* Gradient + Emoji + Kategorie-Badge */}

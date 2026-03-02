@@ -34,8 +34,6 @@ export function PlacePicker({
 }: PlacePickerProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [kindFilter, setKindFilter] = useState<string>("");
-  const [kinds, setKinds] = useState<string[]>([]);
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [manualUrl, setManualUrl] = useState("");
@@ -48,23 +46,11 @@ export function PlacePicker({
     return () => clearTimeout(t);
   }, [search]);
 
-  const fetchKinds = useCallback(async () => {
-    try {
-      const res = await fetch("/api/places/kinds");
-      if (!res.ok) return;
-      const data = await res.json();
-      setKinds(data.kinds ?? []);
-    } catch {
-      setKinds([]);
-    }
-  }, []);
-
   const fetchPlaces = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (debouncedSearch) params.set("q", debouncedSearch);
-      if (kindFilter) params.set("kind", kindFilter);
+      if (debouncedSearch.trim()) params.set("q", debouncedSearch.trim());
       const res = await fetch(`/api/places?${params}`);
       if (!res.ok) throw new Error("Laden fehlgeschlagen");
       const data = await res.json();
@@ -74,11 +60,7 @@ export function PlacePicker({
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, kindFilter]);
-
-  useEffect(() => {
-    fetchKinds();
-  }, [fetchKinds]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     fetchPlaces();
@@ -143,26 +125,15 @@ export function PlacePicker({
           </button>
         </div>
 
-        {/* Suchzeile */}
-        <div className="flex shrink-0 flex-wrap gap-3 border-b border-warm p-4">
+        {/* Live-Suche: Name, Kategorie, Adresse */}
+        <div className="shrink-0 border-b border-warm p-4">
           <Input
-            placeholder="Suche nach Name…"
+            placeholder="Suche nach Name, Kategorie oder Adresse…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 min-w-[200px] border-warm"
+            className="w-full border-warm"
+            autoFocus
           />
-          <select
-            value={kindFilter}
-            onChange={(e) => setKindFilter(e.target.value)}
-            className="rounded-lg border-2 border-warm bg-cream px-3 py-2.5 text-sm text-forest focus:border-sage focus:outline-none"
-          >
-            <option value="">Alle Kategorien</option>
-            {kinds.map((k) => (
-              <option key={k} value={k}>
-                {getKindEmoji(k)} {k}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Ergebnisliste */}
@@ -176,10 +147,18 @@ export function PlacePicker({
               {places.map((place) => {
                 const selected = isSelected(place.id);
                 return (
-                  <div
+                  <button
                     key={place.id}
+                    type="button"
+                    onClick={() => {
+                      if (!selected) {
+                        onSelect(place);
+                        onClose();
+                      }
+                    }}
+                    disabled={selected}
                     className={cn(
-                      "flex items-center gap-4 rounded-lg px-3 py-2.5 transition-colors",
+                      "flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-left transition-colors",
                       selected && "cursor-not-allowed opacity-60",
                       !selected && "hover:bg-cream"
                     )}
@@ -199,10 +178,8 @@ export function PlacePicker({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-forest">{place.name}</p>
-                      <p className="text-xs text-muted">
-                        {[place.category ?? place.kind, place.address]
-                          .filter(Boolean)
-                          .join(" · ")}
+                      <p className="text-xs text-sage">
+                        {place.category ?? place.kind ?? "—"}
                       </p>
                       {place.rating && (
                         <div className="mt-1 flex items-center gap-1 text-xs text-sage">
@@ -214,21 +191,14 @@ export function PlacePicker({
                         </div>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        if (!selected) {
-                          onSelect(place);
-                          onClose();
-                        }
-                      }}
-                      disabled={selected}
-                    >
-                      <Plus className="mr-1.5 h-4 w-4" />
-                      Hinzufügen
-                    </Button>
-                  </div>
+                    <Plus
+                      className={cn(
+                        "h-5 w-5 shrink-0",
+                        selected ? "text-sage" : "text-forest"
+                      )}
+                      aria-hidden
+                    />
+                  </button>
                 );
               })}
             </div>

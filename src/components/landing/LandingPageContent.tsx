@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 import { ChatMockup } from "@/components/layout/ChatMockup";
 import { ChatroomCTA } from "@/components/cta/ChatroomCTA";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
 import { BlogPreviewSection } from "@/components/landing/BlogPreviewSection";
 import { DiscoverMunichSection } from "@/components/landing/DiscoverMunichSection";
+import { HighlightsCarousel } from "@/components/home/HighlightsCarousel";
 import { cn } from "@/lib/utils";
 import type { Article } from "@/lib/types";
-import type { PublicCollab } from "@/lib/supabase";
+import type { PublicCollab, PublicEvent } from "@/lib/supabase";
 
 const chatrooms = [
   {
@@ -63,17 +65,19 @@ const collabPreviews = [
 ];
 
 const personas = [
-  { quote: "Ich bin seit zwei Jahren in München und kenne hauptsächlich Kollegen. Im Outdoor-Chatroom habe ich Menschen gefunden, mit denen ich wirklich reden kann — nicht nur small talk.", name: "Anna", age: 34, role: "Neu in München · Outdoor-Enthusiastin", avatar: "A", bg: "bg-sage" },
-  { quote: "Ich wollte nie auf eine Dating-App, aber ich wollte auch nicht alleine ins Konzert. LoclSpots ist genau das richtige — Menschen mit den gleichen Interessen, ohne komischen Beigeschmack.", name: "Michael", age: 48, role: "Kultur-Fan · Brettspiel-Liebhaber", avatar: "M", bg: "bg-peach" },
-  { quote: "Mit 52 ist es nicht einfach, neue Hobbys mit anderen zu teilen. Hier fühle ich mich weder zu alt noch fehl am Platz. Ich hab sogar meine eigene Collab erstellt!", name: "Barbara", age: 52, role: "Stadtentdeckerin · Collab-Erstellerin", avatar: "B", bg: "bg-gold" },
+  { quote: "Ich bin seit zwei Jahren in München und kenne hauptsächlich Kollegen. Im Outdoor-Chatroom habe ich Menschen gefunden, mit denen ich wirklich reden kann — nicht nur Small Talk.", name: "Anna", age: 34, role: "Neu in München · Outdoor-Enthusiastin", avatar: "A", bg: "bg-sage" },
+  { quote: "Ich wollte nie auf eine Dating-App, aber ich wollte auch nicht alleine ins Konzert. LoclSpots ist genau das Richtige — Menschen mit den gleichen Interessen, ohne komischen Beigeschmack.", name: "Michael", age: 48, role: "Kultur-Fan · Brettspiel-Liebhaber", avatar: "M", bg: "bg-peach" },
+  { quote: "Mit 52 ist es nicht einfach, neue Hobbys mit anderen zu teilen. Hier fühle ich mich weder zu alt noch fehl am Platz. Ich habe sogar meine eigene Collab für Münchner Kulturorte erstellt.", name: "Barbara", age: 52, role: "Stadtentdeckerin · Collab-Erstellerin", avatar: "B", bg: "bg-gold" },
 ];
 
 interface LandingPageContentProps {
   articles: Article[];
   collabs: PublicCollab[];
+  events: PublicEvent[];
 }
 
-export function LandingPageContent({ articles, collabs }: LandingPageContentProps) {
+export function LandingPageContent({ articles, collabs, events }: LandingPageContentProps) {
+  const { isLoggedIn } = useAuth();
   const scrollToChatrooms = () => {
     document.getElementById("chatrooms")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -85,7 +89,21 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
         <Link href="/" className="font-serif text-[22px] font-bold tracking-tight text-forest">
           Locl<span className="text-peach">Spots</span>
         </Link>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/artikel"
+            className="text-[15px] font-medium text-sage hover:text-forest"
+          >
+            Artikel
+          </Link>
+          {isLoggedIn && (
+            <Link
+              href="/chatrooms"
+              className="text-[15px] font-medium text-sage hover:text-forest"
+            >
+              Chatrooms
+            </Link>
+          )}
           <Link
             href="/login"
             className="rounded-full border-2 border-sage px-6 py-2.5 text-[15px] font-medium text-sage transition-colors hover:bg-sage hover:text-white"
@@ -116,18 +134,20 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
           <ScrollReveal>
             <span className="mb-7 inline-flex items-center gap-2 rounded-full border border-sage/30 bg-white px-4 py-1.5 text-[13px] font-medium tracking-wide text-sage">
               <span className="text-[8px] text-peach">●</span>
-              Für Menschen 30+ · Ohne Algorithmus-Zwang
+              Die Community-Plattform für München · Für Menschen ab 30
             </span>
           </ScrollReveal>
           <ScrollReveal>
             <h1 className="font-serif text-4xl font-bold leading-[1.15] tracking-tight text-forest sm:text-5xl lg:text-[58px]">
-              Gespräche, die <em className="italic text-peach">wirklich</em> verbinden.
+              Neue Leute kennenlernen in München —<br />
+              ohne Dating-App-Vibe.
             </h1>
           </ScrollReveal>
           <ScrollReveal>
             <p className="mt-5 max-w-[480px] text-[19px] font-light leading-relaxed text-muted">
-              LoclSpots ist der Ort für Menschen, die echten Austausch suchen — über Themen, die sie wirklich bewegen.
-              Thematische Chatrooms, kuratierte Listen, eine Gemeinschaft auf Augenhöhe.
+              LoclSpots verbindet Menschen ab 30 in München über das, was sie wirklich interessiert.
+              Thematische Chatrooms, kuratierte Orte, echte Gespräche —
+              ohne Feed, ohne Follower, ohne Algorithmus.
             </p>
           </ScrollReveal>
           <ScrollReveal className="mt-10 flex flex-wrap gap-4">
@@ -138,6 +158,11 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
               Kostenlos mitmachen
             </Link>
             <ChatroomCTA />
+          </ScrollReveal>
+          <ScrollReveal>
+            <p className="mt-6 text-[14px] text-sage">
+              Bereits über 2.400 Menschen in München dabei · Kostenlos & ohne Verpflichtung
+            </p>
           </ScrollReveal>
         </div>
 
@@ -164,7 +189,7 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
         </div>
         <div className="flex items-center gap-2.5 text-[14px] text-white">
           <span className="font-serif text-[22px] font-bold text-mint">1.200+</span>
-          kuratierte Listen
+          kuratierte Orte in München
         </div>
         <div className="flex items-center gap-2.5 text-[14px] text-white">
           <span className="font-serif text-[22px] font-bold text-mint">30+</span>
@@ -176,38 +201,39 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
         </div>
       </div>
 
-      {/* INSIGHT */}
+      {/* WARUM LOCLSPOTS */}
       <section className="bg-forest py-20 sm:py-24">
         <div className="mx-auto max-w-[1100px] px-6 sm:px-12 text-white">
           <span className="mb-3 block text-[12px] font-semibold uppercase tracking-[1.5px] text-mint">
             Warum LoclSpots?
           </span>
           <h2 className="font-serif text-3xl font-bold leading-tight text-white sm:text-4xl">
-            Ab 30 wird&apos;s schwieriger —<br />das sollte sich ändern.
+            Neue Freunde finden in München ab 30 —<br />
+            warum es so schwer ist und wie es trotzdem klappt.
           </h2>
 
           <div className="mt-14 grid gap-12 lg:grid-cols-2 lg:items-center">
             <ScrollReveal className="space-y-5">
               <p className="text-[18px] font-light leading-relaxed text-white">
-                Als Kind hat man die Schule, als Student den Campus, als Berufseinsteiger das Büro.
-                <strong className="font-semibold text-mint"> Aber irgendwann fehlen diese natürlichen Orte</strong>,
-                an denen man einfach so Menschen trifft, die ähnlich denken.
+                Als Kind gibt es die Schule, als Student den Campus, als Berufseinsteiger das Büro.
+                Ab 30 fehlen diese natürlichen Orte — die Stellen, an denen man einfach so Menschen trifft,
+                die ähnlich denken und ähnlich leben.
               </p>
               <p className="text-[18px] font-light leading-relaxed text-white">
-                Bestehende Plattformen helfen kaum: Instagram ist performativ, Dating-Apps sind eindeutig,
-                Facebook-Gruppen wachsen still vor sich hin.
+                Bestehende Plattformen lösen das Problem nicht: Instagram ist performativ, Dating-Apps haben
+                einen eindeutigen Vibe, Facebook-Gruppen sind oft tot.
                 <strong className="font-semibold text-mint"> LoclSpots ist keines davon.</strong>
               </p>
               <p className="text-[18px] font-light leading-relaxed text-white">
-                Hier steht das Thema im Mittelpunkt — nicht dein Gesicht, nicht dein Status,
-                nicht dein Follower-Count. Einfach das, was dich wirklich interessiert.
+                Hier steht das Thema im Mittelpunkt — nicht dein Gesicht, nicht dein Status, nicht dein Follower-Count.
+                Nur das, was dich wirklich interessiert.
               </p>
             </ScrollReveal>
             <ScrollReveal className="flex flex-col gap-4">
               {[
-                { icon: "💬", title: "Kein Dating-App-Vibe", desc: "Thematische Räume statt Profil-Swipes. Menschen begegnen sich über Interessen — nicht über Fotos." },
-                { icon: "🌿", title: "Kein Social-Media-Stress", desc: "Kein Feed, kein Algorithmus, kein Likes-Zählen. Nur echter Austausch in Chatrooms." },
-                { icon: "🤝", title: "Auf Augenhöhe", desc: "Die Community ist ab 30. Kein Gefühl, „zu alt für diese Plattform\" zu sein." },
+                { icon: "💬", title: "Kein Dating-App-Vibe", desc: "Thematische Räume statt Profil-Swipes. Menschen in München begegnen sich über Interessen — nicht über Fotos." },
+                { icon: "🌿", title: "Kein Social-Media-Stress", desc: "Kein Feed, kein Algorithmus, kein Likes-Zählen. Nur echter Austausch in Chatrooms — dauerhaft, ohne Ablaufdatum." },
+                { icon: "🤝", title: "Eine Community auf Augenhöhe", desc: "Alle ab 30. Kein Gefühl, zu alt für diese Plattform zu sein — weil alle hier im gleichen Lebensabschnitt sind." },
               ].map((card) => (
                 <div
                   key={card.title}
@@ -230,16 +256,14 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
         <div className="mx-auto max-w-[1100px] px-6 sm:px-12">
           <div className="mb-14 grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-              <span className="mb-3 block text-[12px] font-semibold uppercase tracking-[1.5px] text-peach">
-                Das Hauptprodukt
-              </span>
               <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-                Thematische Chatrooms —<br />dein Zuhause für echte Gespräche.
+                Thematische Chatrooms —<br />
+                der Treffpunkt für Münchner ab 30.
               </h2>
             </div>
             <p className="text-[18px] font-light leading-relaxed text-muted">
-              Jeder Chatroom gehört einem Thema. Du wählst, was dich interessiert — und bist sofort mittendrin.
-              Dauerhaft. Ohne Ablaufdatum. Kein Event, das endet. Kein Thread, der verschwindet.
+              Wähle ein Thema, das dich interessiert — und bist sofort mittendrin.
+              Kein Event, das endet. Kein Thread, der verschwindet. Einfach eine Gemeinschaft, die dauerhaft da ist.
             </p>
           </div>
 
@@ -270,14 +294,11 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
         </div>
       </section>
 
-      {/* HOW IT CONNECTS */}
+      {/* WIE ES FUNKTIONIERT */}
       <section className="bg-white py-20 sm:py-24">
         <div className="mx-auto max-w-[1100px] px-6 sm:px-12">
-          <span className="mb-3 block text-[12px] font-semibold uppercase tracking-[1.5px] text-peach">
-            Wie es funktioniert
-          </span>
           <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-            In drei Schritten mittendrin.
+            In drei Schritten neue Leute kennenlernen in München.
           </h2>
 
           <div className="relative mt-14 grid gap-8 sm:grid-cols-3">
@@ -287,9 +308,9 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
               style={{ background: "linear-gradient(90deg, #8FB8A8, #D4845A)" }}
             />
             {[
-              { num: 1, title: "Thema wählen", desc: "Suche dir einen oder mehrere Chatrooms zu Themen, die dich wirklich interessieren. Kein Profil-Foto nötig.", circleClass: "bg-cream text-forest border-2.5 border-sage" },
-              { num: 2, title: "Gespräch beginnen", desc: "Schreib, stell Fragen, antworte. Die Community ist da — dauerhaft, ohne Ablaufdatum.", circleClass: "bg-sage text-white border-2.5 border-sage" },
-              { num: 3, title: "Echtes Treffen", desc: "Aus dem Chat wird ein Kaffee. Aus Gleichgesinnten werden Freunde. So einfach kann es sein.", circleClass: "bg-forest text-white border-2.5 border-forest" },
+              { num: 1, title: "Thema wählen", desc: "Such dir Chatrooms zu Themen, die dich wirklich interessieren — Outdoor, Kultur, Sport, Essen, Spieleabende und mehr.", circleClass: "bg-cream text-forest border-2.5 border-sage" },
+              { num: 2, title: "Gespräch beginnen", desc: "Schreib, stell Fragen, antworte. Die Community ist da — dauerhaft, ohne Druck, ohne Ablaufdatum.", circleClass: "bg-sage text-white border-2.5 border-sage" },
+              { num: 3, title: "Echtes Treffen", desc: "Aus dem Chat wird ein Kaffee. Aus Gleichgesinnten werden Freunde. So einfach kann Neues kennenlernen in München sein.", circleClass: "bg-forest text-white border-2.5 border-forest" },
             ].map((step) => (
               <ScrollReveal key={step.num} className="relative z-10 flex flex-col items-center text-center">
                 <div
@@ -311,20 +332,42 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
       {/* ENTDECKE MÜNCHEN - Öffentliche Collabs */}
       <DiscoverMunichSection collabs={collabs} />
 
-      {/* COLLABS */}
+      {/* HIGHLIGHT EVENTS */}
+      {events.length > 0 && (
+        <section className="bg-cream py-20 sm:py-24">
+          <div className="mx-auto max-w-[1100px] px-6 sm:px-12">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
+                  Nicht verpassen — Events in München
+                </h2>
+                <p className="mt-2 text-[18px] font-light leading-relaxed text-muted">
+                  Die besten Veranstaltungen in München gerade jetzt.
+                </p>
+              </div>
+              <Link
+                href="/events"
+                className="text-[15px] font-medium text-forest transition-colors hover:text-sage"
+              >
+                Alle Events in München →
+              </Link>
+            </div>
+            <HighlightsCarousel events={events} limit={5} />
+          </div>
+        </section>
+      )}
+
+      {/* COLLAB FEATURE */}
       <section className="bg-warm py-20 sm:py-24">
         <div className="mx-auto max-w-[1100px] px-6 sm:px-12">
           <div className="mb-12 grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-              <span className="mb-3 block text-[12px] font-semibold uppercase tracking-[1.5px] text-peach">
-                Kuratierte Listen
-              </span>
               <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-                Collabs — Inspiration,<br />die Gespräche startet.
+                Collabs — kuratierte Listen,<br />
+                die Gespräche starten.
               </h2>
               <p className="mt-4 text-[18px] font-light leading-relaxed text-muted">
-                Collabs sind kuratierte Listen zu Themen — von Mitgliedern erstellt, für alle sichtbar.
-                Jede Collab ist direkt mit dem passenden Chatroom verknüpft. Entdecken und direkt diskutieren.
+                Ob die besten Biergärten in München, Programmkinos, Wanderrouten oder After-Work-Spots — Collabs bündeln lokales Wissen und machen es für alle zugänglich. Entdecken und direkt im Chatroom diskutieren.
               </p>
               <p className="mt-4 font-semibold text-forest">
                 Collabs inspirieren. Chatrooms verbinden.
@@ -408,22 +451,20 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
         </div>
       </section>
 
-      {/* FINAL CTA */}
+      {/* FOOTER CTA */}
       <section className="relative overflow-hidden bg-forest py-28 sm:py-32 text-white">
         <div
           className="pointer-events-none absolute left-1/2 top-[-150px] h-[800px] w-[800px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(143,184,168,0.12)_0%,transparent_70%)]"
           aria-hidden
         />
         <div className="relative z-10 mx-auto max-w-2xl px-6 text-center sm:px-12">
-          <span className="mb-3 block text-[12px] font-semibold uppercase tracking-[1.5px] text-mint">
-            Bereit?
-          </span>
           <h2 className="font-serif text-4xl font-bold text-mint sm:text-5xl">
-            Fang heute an.
+            Bereit? Fang heute an.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[18px] font-light leading-relaxed text-white">
             Keine Kreditkarte. Kein Algorithmus. Kein Scroll-Feed.
-            Nur echte Menschen und echte Gespräche — über das, was dich wirklich interessiert.
+            Nur echte Menschen und echte Gespräche in München —
+            über das, was dich wirklich interessiert.
           </p>
           <Link
             href="/register"
@@ -432,7 +473,7 @@ export function LandingPageContent({ articles, collabs }: LandingPageContentProp
             Kostenlos registrieren
           </Link>
           <p className="mt-5 text-[13px] text-white/70">
-            Bereits über 2.400 Menschen sind dabei · Kostenlos & ohne Verpflichtung
+            Bereits über 2.400 Menschen in München dabei · Kostenlos & ohne Verpflichtung
           </p>
         </div>
       </section>

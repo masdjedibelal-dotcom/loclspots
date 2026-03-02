@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useChat } from "@/hooks/useChat";
@@ -15,6 +15,7 @@ interface ChatWindowProps {
   memberCount: number;
   initialMessages: Message[];
   currentUserId: string;
+  initialLastReadAt?: string | null;
   onLeave?: () => void;
 }
 
@@ -43,13 +44,15 @@ export function ChatWindow({
   memberCount,
   initialMessages,
   currentUserId,
+  initialLastReadAt = null,
   onLeave,
 }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const supabase = createClient();
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
 
-  const { messages, sendMessage, isLoading, error } = useChat({
+  const { messages, sendMessage, handleReaction, handleDelete, isLoading, error } = useChat({
     chatroomId,
     initialMessages,
     currentUserId,
@@ -77,6 +80,7 @@ export function ChatWindow({
   };
 
   let lastDate: string | null = null;
+  const lastReadCheck = initialLastReadAt ? new Date(initialLastReadAt) : null;
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col rounded-xl border border-warm bg-white lg:h-[calc(100vh-6rem)]">
@@ -100,21 +104,43 @@ export function ChatWindow({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
+        <div className="py-2 text-center">
+          <span className="rounded-full bg-warm px-3 py-1 text-xs text-sage">
+            🕐 Nachrichten werden nach 24 Stunden automatisch gelöscht
+          </span>
+        </div>
         <div className="space-y-4">
-          {messages.map((message) => {
+          {messages.map((message, index) => {
             const msgDate = new Date(message.created_at).toDateString();
             const showDateSeparator = msgDate !== lastDate;
             if (showDateSeparator) lastDate = msgDate;
+
+            const prevMessage = messages[index - 1];
+            const showName =
+              message.user_id !== currentUserId &&
+              (prevMessage?.user_id !== message.user_id || !prevMessage);
+
+            const prevIsBeforeRead =
+              !lastReadCheck || new Date(prevMessage?.created_at ?? 0) <= lastReadCheck;
+            const thisIsAfterRead =
+              lastReadCheck && new Date(message.created_at) > lastReadCheck;
+            const isFirstUnread = prevIsBeforeRead && thisIsAfterRead;
 
             return (
               <MessageBubble
                 key={message.id}
                 message={message}
                 isOwn={message.user_id === currentUserId}
+                currentUserId={currentUserId}
                 showDateSeparator={showDateSeparator}
                 dateLabel={
                   showDateSeparator ? formatDateLabel(new Date(message.created_at)) : undefined
                 }
+                showName={showName}
+                isFirstUnread={isFirstUnread}
+                onReaction={handleReaction}
+                onDelete={handleDelete}
+                onReply={(msg) => setReplyTo(msg)}
               />
             );
           })}
@@ -131,8 +157,13 @@ export function ChatWindow({
       {/* Input */}
       <div className="sticky bottom-0">
         <MessageInput
-          onSend={sendMessage}
+          onSend={(content) => {
+            sendMessage(content, replyTo);
+            setReplyTo(null);
+          }}
           disabled={isLoading}
+          replyTo={replyTo}
+          onClearReply={() => setReplyTo(null)}
         />
       </div>
     </div>

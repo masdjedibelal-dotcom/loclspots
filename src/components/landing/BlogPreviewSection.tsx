@@ -16,18 +16,18 @@ export function BlogPreviewSection({ articles }: BlogPreviewSectionProps) {
       <div className="mx-auto max-w-[1100px] px-6 sm:px-12">
         <div className="mb-12 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <span className="mb-3 block text-[12px] font-semibold uppercase tracking-[1.5px] text-peach">
-              Aus dem Blog
-            </span>
             <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-              Tipps & Stories
+              Tipps & Stories aus München
             </h2>
+            <p className="mt-2 text-[18px] font-light leading-relaxed text-muted">
+              Neue Leute kennenlernen, Viertel entdecken, Sport-Communities finden — ehrliche Guides von und für Münchner ab 30.
+            </p>
           </div>
           <Link
-            href="/blog"
+            href="/artikel"
             className="group inline-flex items-center gap-2 text-[15px] font-semibold text-forest transition-colors hover:text-sage"
           >
-            Alle Artikel
+            Alle Artikel →
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -36,7 +36,7 @@ export function BlogPreviewSection({ articles }: BlogPreviewSectionProps) {
           {articles.map((article) => (
             <ScrollReveal key={article.id}>
               <Link
-                href={`/blog/${article.slug}`}
+                href={`/artikel/${article.slug}`}
                 className={`
                   group flex flex-col overflow-hidden rounded-[18px] border border-sage/12 bg-cream
                   transition-all duration-300
@@ -49,11 +49,11 @@ export function BlogPreviewSection({ articles }: BlogPreviewSectionProps) {
                       {article.category}
                     </Badge>
                   )}
-                  <h3 className="font-semibold leading-snug text-forest line-clamp-2 group-hover:text-sage">
+                  <h3 className="text-base font-semibold leading-snug text-forest line-clamp-2 group-hover:text-sage">
                     {article.title}
                   </h3>
                   {article.excerpt && (
-                    <p className="mt-3 flex-1 text-[14px] leading-relaxed text-muted line-clamp-3">
+                    <p className="mt-3 flex-1 text-sm leading-relaxed text-muted line-clamp-2 sm:line-clamp-3">
                       {article.excerpt}
                     </p>
                   )}

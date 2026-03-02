@@ -6,9 +6,9 @@ import { Home, MessageCircle, BookOpen, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", icon: Home, label: "Dashboard" },
+  { href: "/home", icon: Home, label: "Home" },
   { href: "/chatrooms", icon: MessageCircle, label: "Chatrooms" },
-  { href: "/collabs", icon: BookOpen, label: "Collabs" },
+  { href: "/entdecken", icon: BookOpen, label: "Entdecken" },
   { href: "/events", icon: Calendar, label: "Events" },
   { href: "/profil", icon: User, label: "Profil" },
 ];

@@ -14,12 +14,14 @@ interface ChatroomCardProps {
   chatroom: Chatroom;
   isMember: boolean;
   isActive?: boolean;
+  unreadCount?: number;
 }
 
 export function ChatroomCard({
   chatroom,
   isMember,
   isActive = true,
+  unreadCount = 0,
 }: ChatroomCardProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -71,9 +73,14 @@ export function ChatroomCard({
         {isMember ? (
           <Link
             href={`/chatrooms/${chatroom.id}`}
-            className="inline-flex items-center justify-center rounded-md border-2 border-sage px-3 py-1.5 text-xs font-medium text-forest transition-colors hover:bg-sage/10"
+            className="relative inline-flex w-full items-center justify-center rounded-xl border-2 border-sage px-3 py-2 text-sm font-medium text-forest transition-colors hover:bg-sage/10 sm:w-auto"
           >
             Öffnen
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-forest px-1 text-xs font-medium text-white">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </Link>
         ) : (
           <Button
@@ -82,6 +89,7 @@ export function ChatroomCard({
             onClick={handleJoin}
             isLoading={isJoining}
             disabled={isJoining}
+            className="w-full sm:w-auto"
           >
             Beitreten
           </Button>

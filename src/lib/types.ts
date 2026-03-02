@@ -16,6 +16,9 @@ export interface Chatroom {
   category: string;
   member_count?: number;
   created_at: string;
+  parent_id?: string | null;
+  is_category?: boolean;
+  sort_order?: number;
 }
 
 export interface Message {
@@ -25,6 +28,15 @@ export interface Message {
   content: string;
   created_at: string;
   profile?: Profile;
+  reply_to_id?: string | null;
+  reply_to?: {
+    id: string;
+    content: string;
+    is_deleted?: boolean;
+    profiles?: { username?: string } | null;
+  } | null;
+  reactions?: Record<string, string[]>;
+  is_deleted?: boolean;
 }
 
 /** Bestehende places-Tabelle */
