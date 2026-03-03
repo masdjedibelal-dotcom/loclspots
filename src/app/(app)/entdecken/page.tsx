@@ -1,5 +1,5 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getArticles } from "@/lib/supabase";
 import { EntdeckenClient } from "./EntdeckenClient";
 import type { Collab, Profile } from "@/lib/types";
 
@@ -7,7 +7,16 @@ interface CollabWithItemCount extends Collab {
   itemCount: number;
 }
 
-export default async function EntdeckenPage() {
+type PageProps = {
+  searchParams: Promise<{ tab?: string }>;
+};
+
+export default async function EntdeckenPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  if (params.tab === "artikel") {
+    redirect("/entdecken/artikel");
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,7 +24,7 @@ export default async function EntdeckenPage() {
 
   if (!user) return null;
 
-  const [collabsResult, articlesResult] = await Promise.all([
+  const [collabsResult] = await Promise.all([
     (async () => {
       const { data: rawCollabs } = await supabase
         .from("collabs")
@@ -52,16 +61,14 @@ export default async function EntdeckenPage() {
         itemCount: countMap.get(c.id) ?? 0,
       })) as CollabWithItemCount[];
     })(),
-    getArticles(),
   ]);
 
   const collabs = collabsResult ?? [];
-  const articles = articlesResult ?? [];
 
   return (
     <EntdeckenClient
       collabs={collabs}
-      articles={articles}
+      articles={[]}
       currentUserId={user.id}
     />
   );

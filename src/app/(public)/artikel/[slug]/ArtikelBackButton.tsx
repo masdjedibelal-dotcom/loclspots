@@ -1,23 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
+/**
+ * Nur für (public)/artikel/[slug] – Startseiten-Header.
+ * App-Artikelseite hat eigenen Back-Link in page.tsx.
+ */
 export function ArtikelBackButton() {
-  const searchParams = useSearchParams();
-  const from = searchParams.get("from");
-
-  if (from === "dashboard") {
-    return (
-      <Link
-        href="/entdecken?tab=artikel"
-        className="text-sm font-medium text-sage transition-colors hover:text-forest"
-      >
-        ← Zurück zu allen Artikeln
-      </Link>
-    );
-  }
-
   return (
     <Link
       href="/artikel"
