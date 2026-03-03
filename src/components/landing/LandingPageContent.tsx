@@ -10,7 +10,7 @@ import { BlogPreviewSection } from "@/components/landing/BlogPreviewSection";
 import { HighlightsCarousel } from "@/components/home/HighlightsCarousel";
 import { cn } from "@/lib/utils";
 import type { Article } from "@/lib/types";
-import type { PublicEvent } from "@/lib/supabase";
+import type { PublicCollab, PublicEvent } from "@/lib/supabase";
 
 const chatrooms = [
   {
@@ -72,10 +72,15 @@ const personas = [
 
 interface LandingPageContentProps {
   articles: Article[];
+  collabs?: PublicCollab[];
   events: PublicEvent[];
 }
 
-export function LandingPageContent({ articles, events }: LandingPageContentProps) {
+export function LandingPageContent({
+  articles,
+  collabs = [],
+  events,
+}: LandingPageContentProps) {
   const { isLoggedIn } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const scrollToChatrooms = () => {

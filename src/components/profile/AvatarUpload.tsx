@@ -19,7 +19,7 @@ async function compressImage(
   quality: number
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = document.createElement("img");
     const url = URL.createObjectURL(file);
 
     img.onload = () => {
