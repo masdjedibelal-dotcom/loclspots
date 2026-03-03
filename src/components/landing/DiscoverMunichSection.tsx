@@ -73,7 +73,7 @@ export function DiscoverMunichSection({ collabs }: DiscoverMunichSectionProps) {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-              Entdecke München — kuratierte Orte von Locals
+              📍 Collabs — Kuratierte Orte & Listen für München
             </h2>
             <p className="mt-2 text-[18px] font-light leading-relaxed text-muted">
               Collabs sind Listen zu Themen — von Community-Mitgliedern erstellt, für alle sichtbar. Die besten Restaurants, Bars, Biergärten, Kulturorte und Geheimtipps in München — direkt verknüpft mit dem passenden Chatroom.

@@ -1,43 +1,4 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-
-function buildHref(
-  basePath: string,
-  page: number,
-  searchParams?: Record<string, string>
-): string {
-  const params = new URLSearchParams();
-  if (page > 1) params.set("page", String(page));
-  if (searchParams) {
-    for (const [key, value] of Object.entries(searchParams)) {
-      if (value != null && value !== "") params.set(key, String(value));
-    }
-  }
-  const qs = params.toString();
-  return `${basePath}${qs ? `?${qs}` : ""}`;
-}
-
-function getPageNumbers(currentPage: number, totalPages: number): (number | "ellipsis")[] {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  const pages: (number | "ellipsis")[] = [];
-  const show = new Set([
-    1,
-    totalPages,
-    currentPage,
-    Math.max(1, currentPage - 1),
-    Math.min(totalPages, currentPage + 1),
-  ]);
-  const sorted = Array.from(show).sort((a, b) => a - b);
-  for (let i = 0; i < sorted.length; i++) {
-    if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) {
-      pages.push("ellipsis");
-    }
-    pages.push(sorted[i]!);
-  }
-  return pages;
-}
 
 interface PaginationProps {
   currentPage: number;
@@ -50,96 +11,75 @@ export function Pagination({
   currentPage,
   totalPages,
   basePath,
-  searchParams,
+  searchParams = {},
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
-  const page = Math.min(Math.max(1, currentPage), totalPages);
-  const pageNumbers = getPageNumbers(page, totalPages);
+  const buildUrl = (page: number) => {
+    const params = new URLSearchParams({ ...searchParams, page: String(page) });
+    return `${basePath}?${params.toString()}`;
+  };
+
+  const pages: (number | "...")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push("...");
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+  }
 
   return (
-    <nav
-      className="flex flex-wrap items-center justify-center gap-2 pt-6"
-      aria-label="Pagination"
-    >
-      {/* Desktop: « [1] [2] [3] ... [8] » */}
-      <div className="hidden items-center gap-2 sm:flex">
+    <div className="flex items-center justify-center gap-1 py-8">
+      {currentPage > 1 ? (
         <Link
-          href={buildHref(basePath, page - 1, searchParams)}
-          className={cn(
-            "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            page <= 1
-              ? "pointer-events-none cursor-default text-sage/50"
-              : "text-sage hover:bg-sage/10 hover:text-forest"
-          )}
-          aria-label="Vorherige Seite"
+          href={buildUrl(currentPage - 1)}
+          className="rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
         >
-          « Zurück
+          ← Zurück
         </Link>
+      ) : (
+        <span className="px-3 py-2 text-sm text-gray-300">← Zurück</span>
+      )}
 
-        {pageNumbers.map((p, i) =>
-          p === "ellipsis" ? (
-            <span key={`e-${i}`} className="px-1 text-sage">
+      <div className="hidden items-center gap-1 sm:flex">
+        {pages.map((page, i) =>
+          page === "..." ? (
+            <span key={`d${i}`} className="px-2 text-gray-400">
               …
             </span>
           ) : (
             <Link
-              key={p}
-              href={buildHref(basePath, p, searchParams)}
-              className={cn(
-                "min-w-[2.5rem] rounded-lg border px-3 py-2 text-center text-sm font-medium transition-colors",
-                p === page
-                  ? "border-forest bg-forest text-white"
-                  : "border-sage/40 text-sage hover:border-forest hover:bg-forest/10 hover:text-forest"
-              )}
+              key={page}
+              href={buildUrl(page)}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-colors ${
+                page === currentPage ? "bg-[#2D5016] font-medium text-white" : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
-              {p}
+              {page}
             </Link>
           )
         )}
-
-        <Link
-          href={buildHref(basePath, page + 1, searchParams)}
-          className={cn(
-            "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            page >= totalPages
-              ? "pointer-events-none cursor-default text-sage/50"
-              : "text-sage hover:bg-sage/10 hover:text-forest"
-          )}
-          aria-label="Nächste Seite"
-        >
-          Weiter »
-        </Link>
       </div>
 
-      {/* Mobile: « Seite X von Y » Weiter » */}
-      <div className="flex items-center gap-4 sm:hidden">
+      <span className="px-3 text-sm text-gray-500 sm:hidden">
+        Seite {currentPage} von {totalPages}
+      </span>
+
+      {currentPage < totalPages ? (
         <Link
-          href={buildHref(basePath, page - 1, searchParams)}
-          className={cn(
-            "text-sm font-medium transition-colors",
-            page <= 1
-              ? "pointer-events-none cursor-default text-sage/50"
-              : "text-sage hover:text-forest"
-          )}
+          href={buildUrl(currentPage + 1)}
+          className="rounded-lg px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
         >
-          « Zurück
+          Weiter →
         </Link>
-        <span className="text-sm text-sage">
-          Seite {page} von {totalPages}
-        </span>
-        <Link
-          href={buildHref(basePath, page + 1, searchParams)}
-          className={cn(
-            "text-sm font-medium transition-colors",
-            page >= totalPages
-              ? "pointer-events-none cursor-default text-sage/50"
-              : "text-sage hover:text-forest"
-          )}
-        >
-          Weiter »
-        </Link>
-      </div>
-    </nav>
+      ) : (
+        <span className="px-3 py-2 text-sm text-gray-300">Weiter →</span>
+      )}
+    </div>
   );
 }

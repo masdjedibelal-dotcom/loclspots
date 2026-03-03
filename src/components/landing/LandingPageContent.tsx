@@ -1,16 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatMockup } from "@/components/layout/ChatMockup";
 import { ChatroomCTA } from "@/components/cta/ChatroomCTA";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
 import { BlogPreviewSection } from "@/components/landing/BlogPreviewSection";
-import { DiscoverMunichSection } from "@/components/landing/DiscoverMunichSection";
 import { HighlightsCarousel } from "@/components/home/HighlightsCarousel";
 import { cn } from "@/lib/utils";
 import type { Article } from "@/lib/types";
-import type { PublicCollab, PublicEvent } from "@/lib/supabase";
+import type { PublicEvent } from "@/lib/supabase";
 
 const chatrooms = [
   {
@@ -72,12 +72,12 @@ const personas = [
 
 interface LandingPageContentProps {
   articles: Article[];
-  collabs: PublicCollab[];
   events: PublicEvent[];
 }
 
-export function LandingPageContent({ articles, collabs, events }: LandingPageContentProps) {
+export function LandingPageContent({ articles, events }: LandingPageContentProps) {
   const { isLoggedIn } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
   const scrollToChatrooms = () => {
     document.getElementById("chatrooms")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -85,39 +85,117 @@ export function LandingPageContent({ articles, collabs, events }: LandingPageCon
   return (
     <div className="min-h-screen bg-light">
       {/* NAV */}
-      <nav className="fixed inset-x-0 top-0 z-[100] flex items-center justify-between border-b border-sage/15 bg-cream/92 px-6 py-4 backdrop-blur-xl sm:px-12">
-        <Link href="/" className="font-serif text-[22px] font-bold tracking-tight text-forest">
-          Locl<span className="text-peach">Spots</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/artikel"
-            className="text-[15px] font-medium text-sage hover:text-forest"
-          >
-            Artikel
+      <header className="fixed inset-x-0 top-0 z-[100] border-b border-sage/15 bg-cream/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-12">
+          <Link href="/" className="shrink-0 font-serif text-[22px] font-bold tracking-tight text-forest">
+            Locl<span className="text-peach">Spots</span>
           </Link>
-          {isLoggedIn && (
-            <Link
-              href="/chatrooms"
-              className="text-[15px] font-medium text-sage hover:text-forest"
-            >
-              Chatrooms
+
+          {/* Desktop Nav — nur ab md */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/artikel" className="text-[15px] font-medium text-sage hover:text-forest">
+              Artikel
             </Link>
-          )}
-          <Link
-            href="/login"
-            className="rounded-full border-2 border-sage px-6 py-2.5 text-[15px] font-medium text-sage transition-colors hover:bg-sage hover:text-white"
-          >
-            Einloggen
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-full bg-forest px-6 py-2.5 text-[15px] font-semibold text-white transition-all hover:bg-peach hover:-translate-y-0.5"
-          >
-            Registrieren
-          </Link>
+            <Link href="/collabs" className="text-[15px] font-medium text-sage hover:text-forest">
+              Collabs
+            </Link>
+            <Link href="/events" className="text-[15px] font-medium text-sage hover:text-forest">
+              Events
+            </Link>
+            {isLoggedIn && (
+              <Link href="/chatrooms" className="text-[15px] font-medium text-sage hover:text-forest">
+                Chatrooms
+              </Link>
+            )}
+          </nav>
+
+          {/* Desktop Auth — nur ab md */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              href="/login"
+              className="rounded-full border-2 border-sage px-5 py-2 text-[15px] font-medium text-sage transition-colors hover:bg-sage hover:text-white"
+            >
+              Einloggen
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-full bg-forest px-5 py-2 text-[15px] font-semibold text-white transition-all hover:bg-peach hover:-translate-y-0.5"
+            >
+              Registrieren
+            </Link>
+          </div>
+
+          {/* Mobile: Einloggen + Hamburger */}
+          <div className="flex md:hidden items-center gap-2">
+            <Link
+              href="/login"
+              className="shrink-0 rounded-full border-2 border-sage px-3 py-1.5 text-[13px] font-medium text-sage"
+            >
+              Einloggen
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 rounded-lg hover:bg-sage/10 text-forest"
+              aria-label={menuOpen ? "Menü schließen" : "Menü öffnen"}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? (
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
-      </nav>
+
+        {/* Mobile Dropdown */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-sage/15 bg-white/95 backdrop-blur-sm px-4 py-3 flex flex-col gap-0">
+            <Link
+              href="/artikel"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-3 py-3 text-forest border-b border-sage/10"
+            >
+              <span>📝</span> Artikel
+            </Link>
+            <Link
+              href="/collabs"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-3 py-3 text-forest border-b border-sage/10"
+            >
+              <span>📍</span> Collabs
+            </Link>
+            <Link
+              href="/events"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-3 py-3 text-forest border-b border-sage/10"
+            >
+              <span>📅</span> Events
+            </Link>
+            {isLoggedIn && (
+              <Link
+                href="/chatrooms"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 py-3 text-forest border-b border-sage/10"
+              >
+                <span>💬</span> Chatrooms
+              </Link>
+            )}
+            <Link
+              href="/register"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 w-full text-center bg-forest text-white rounded-xl py-3 font-semibold hover:bg-peach transition-colors"
+            >
+              Kostenlos registrieren
+            </Link>
+          </div>
+        )}
+      </header>
 
       {/* HERO */}
       <section className="relative grid min-h-screen grid-cols-1 items-center gap-12 overflow-hidden bg-cream px-6 pt-28 pb-16 sm:px-12 lg:grid-cols-2 lg:gap-16 lg:px-12 lg:pt-32 lg:pb-20">
@@ -329,9 +407,6 @@ export function LandingPageContent({ articles, collabs, events }: LandingPageCon
         </div>
       </section>
 
-      {/* ENTDECKE MÜNCHEN - Öffentliche Collabs */}
-      <DiscoverMunichSection collabs={collabs} />
-
       {/* HIGHLIGHT EVENTS */}
       {events.length > 0 && (
         <section className="bg-cream py-20 sm:py-24">
@@ -363,7 +438,7 @@ export function LandingPageContent({ articles, collabs, events }: LandingPageCon
           <div className="mb-12 grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
               <h2 className="font-serif text-3xl font-bold leading-tight text-forest sm:text-4xl">
-                Collabs — kuratierte Listen,<br />
+                Collabs — kuratierte Orte & Listen,<br />
                 die Gespräche starten.
               </h2>
               <p className="mt-4 text-[18px] font-light leading-relaxed text-muted">

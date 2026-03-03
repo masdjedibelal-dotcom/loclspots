@@ -10,6 +10,59 @@ interface AvatarUploadProps {
   onUploadComplete?: (url: string) => void;
 }
 
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
+async function compressImage(
+  file: File,
+  maxWidth: number,
+  maxHeight: number,
+  quality: number
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const canvas = document.createElement("canvas");
+
+      // Seitenverhältnis beibehalten, auf max Größe skalieren
+      let { width, height } = img;
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas context not available"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))),
+        "image/jpeg",
+        quality
+      );
+    };
+
+    img.onerror = () => reject(new Error("Image load failed"));
+    img.src = url;
+  });
+}
+
 export function AvatarUpload({
   userId,
   currentAvatarUrl,
@@ -21,7 +74,6 @@ export function AvatarUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  // Preview aktualisieren, wenn currentAvatarUrl sich ändert (z.B. nach Refresh)
   useEffect(() => {
     setPreview(currentAvatarUrl ?? null);
   }, [currentAvatarUrl]);
@@ -30,53 +82,79 @@ export function AvatarUpload({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Nur Bilder erlaubt");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Maximale Dateigröße: 5 MB");
-      return;
-    }
-
     setError(null);
     setUploading(true);
 
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
-
     try {
-      const compressed = await compressImage(file, 400);
+      // 1. Format prüfen und konvertieren (HEIC → JPEG)
+      const isHeic =
+        file.type === "image/heic" ||
+        file.type === "image/heif" ||
+        file.name.toLowerCase().endsWith(".heic") ||
+        file.name.toLowerCase().endsWith(".heif");
 
-      const filePath = `${userId}.jpg`;
+      let imageFile: File = file;
+
+      if (isHeic) {
+        try {
+          const heic2any = (await import("heic2any")).default;
+          const result = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.85,
+          });
+          const convertedBlob = Array.isArray(result) ? result[0]! : result;
+          imageFile = new File([convertedBlob], "avatar.jpg", { type: "image/jpeg" });
+        } catch {
+          setError("Bitte wähle ein JPEG oder PNG Bild");
+          setUploading(false);
+          return;
+        }
+      }
+
+      // 2. Dateigröße prüfen (vor Komprimierung)
+      if (imageFile.size > MAX_SIZE) {
+        setError("Bild ist zu groß (max. 10 MB)");
+        setUploading(false);
+        return;
+      }
+
+      if (!imageFile.type.startsWith("image/")) {
+        setError("Nur Bilder erlaubt.");
+        setUploading(false);
+        return;
+      }
+
+      // 3. Via Canvas komprimieren + auf 400x400 skalieren
+      const compressed = await compressImage(imageFile, 400, 400, 0.85);
+
+      // 4. Upload zu Supabase
+      const fileName = `${userId}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, compressed, {
+        .upload(fileName, compressed, {
           contentType: "image/jpeg",
           upsert: true,
+          cacheControl: "3600",
         });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      // 5. URL speichern
+      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
       const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
 
       await supabase
         .from("profiles")
-        .upsert({
-          id: userId,
-          avatar_url: publicUrl,
-          updated_at: new Date().toISOString(),
-        });
+        .update({ avatar_url: publicUrl })
+        .eq("id", userId);
 
-      URL.revokeObjectURL(objectUrl);
       setPreview(publicUrl);
       onUploadComplete?.(publicUrl);
     } catch (err) {
-      URL.revokeObjectURL(objectUrl);
+      console.error("Upload error:", err);
+      setError("Upload fehlgeschlagen. Bitte versuche es erneut.");
       setPreview(currentAvatarUrl ?? null);
-      setError("Upload fehlgeschlagen. Bitte nochmal versuchen.");
-      console.error(err);
     } finally {
       setUploading(false);
     }
@@ -114,7 +192,7 @@ export function AvatarUpload({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -129,35 +207,10 @@ export function AvatarUpload({
       </button>
 
       {error && (
-        <p className="text-sm text-red-500" role="alert">
+        <p className="mt-2 text-sm text-red-500" role="alert">
           {error}
         </p>
       )}
     </div>
   );
-}
-
-async function compressImage(file: File, maxSize: number): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = document.createElement("img");
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const scale = Math.min(
-        maxSize / img.width,
-        maxSize / img.height,
-        1
-      );
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Canvas context not available"));
-        return;
-      }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.85);
-    };
-    img.onerror = () => reject(new Error("Image load failed"));
-    img.src = URL.createObjectURL(file);
-  });
 }
