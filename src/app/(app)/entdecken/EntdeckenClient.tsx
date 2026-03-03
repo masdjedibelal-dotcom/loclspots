@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { CollabsClient } from "../collabs/CollabsClient";
-import { ArtikelClient } from "../artikel/ArtikelClient";
+import { ArtikelClient } from "./ArtikelClient";
 import { cn } from "@/lib/utils";
 import type { Collab } from "@/lib/types";
 import type { Article } from "@/lib/types";
