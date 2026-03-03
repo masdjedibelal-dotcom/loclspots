@@ -82,7 +82,9 @@ export default async function ArtikelPage({ searchParams }: Props) {
   }
   const { data: articles } = await dataQuery;
 
-  const filterParams = category ? { category } : {};
+  const filterParams: Record<string, string> | undefined = category
+    ? { category }
+    : undefined;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">

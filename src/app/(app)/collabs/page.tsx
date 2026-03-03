@@ -98,7 +98,9 @@ export default async function CollabsPage({
   }
 
   // Aktive Filter-Params für Pagination (ohne "page")
-  const filterParams = category ? { category } : {};
+  const filterParams: Record<string, string> | undefined = category
+    ? { category }
+    : undefined;
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
