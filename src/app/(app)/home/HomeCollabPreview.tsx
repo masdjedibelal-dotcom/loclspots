@@ -41,16 +41,14 @@ export function HomeCollabPreview({ collabs }: HomeCollabPreviewProps) {
   if (collabs.length === 0) return null;
 
   return (
-    <section className="py-6">
+    <section className="py-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-forest">
-            📍 Entdecke München
-          </h2>
-          <p className="text-sm text-sage">Kuratierte Listen von Locals</p>
+          <h2 className="text-lg font-semibold text-forest">📍 Collabs</h2>
+          <p className="text-sm text-sage">Kuratierte Orte & Listen für München</p>
         </div>
         <Link href="/collabs" className="text-sm font-medium text-forest shrink-0">
-          Alle anzeigen →
+          Alle Collabs →
         </Link>
       </div>
 
@@ -62,11 +60,11 @@ export function HomeCollabPreview({ collabs }: HomeCollabPreviewProps) {
           <Link
             key={collab.id}
             href={`/collabs/${collab.id}`}
-            className="flex shrink-0 w-[72vw] min-w-0 snap-start overflow-hidden rounded-2xl border border-warm bg-white transition-shadow hover:shadow-md sm:w-64"
+            className="flex shrink-0 w-[72vw] min-w-0 snap-start overflow-hidden rounded-2xl border border-warm bg-white shadow-sm transition-shadow hover:shadow-md sm:w-60"
           >
             <div
               className={cn(
-                "flex h-28 items-center justify-center text-5xl",
+                "flex h-20 items-center justify-center text-4xl",
                 getCategoryBg(collab.category ?? "")
               )}
             >
@@ -83,7 +81,7 @@ export function HomeCollabPreview({ collabs }: HomeCollabPreviewProps) {
                   {collab.category}
                 </span>
               )}
-              <h3 className="mt-2 line-clamp-2 text-sm font-semibold text-forest">
+              <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-forest">
                 {collab.title}
               </h3>
             </div>

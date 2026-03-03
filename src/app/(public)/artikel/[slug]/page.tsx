@@ -7,6 +7,8 @@ import {
   getRelatedArticles,
 } from "@/lib/supabase";
 import { Badge } from "@/components/ui/Badge";
+import { ArtikelBackButton } from "./ArtikelBackButton";
+import { HomeLink } from "./HomeLink";
 import type { Metadata } from "next";
 
 function formatDate(iso: string): string {
@@ -17,7 +19,10 @@ function formatDate(iso: string): string {
   });
 }
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -46,12 +51,14 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-export default async function ArtikelDetailPage({ params }: Props) {
+export default async function ArtikelDetailPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { from } = await searchParams;
   const article = await getArticleBySlug(slug);
 
   if (!article) notFound();
 
+  const relatedQuery = from === "dashboard" ? "?from=dashboard" : "";
   const related = await getRelatedArticles(
     article.id,
     article.category,
@@ -62,28 +69,15 @@ export default async function ArtikelDetailPage({ params }: Props) {
     <div className="min-h-screen bg-light">
       <header className="border-b border-sage/15 bg-cream/95 px-6 py-4 backdrop-blur-sm sm:px-12">
         <div className="mx-auto flex max-w-[720px] items-center justify-between">
-          <Link
-            href="/"
-            className="font-serif text-[20px] font-bold tracking-tight text-forest"
-          >
-            Locl<span className="text-peach">Spots</span>
-          </Link>
-          <Link
-            href="/artikel"
-            className="text-[14px] font-medium text-sage hover:text-forest"
-          >
-            Zur Startseite
-          </Link>
+          <HomeLink />
+          <ArtikelBackButton />
         </div>
       </header>
 
       <article className="mx-auto max-w-[720px] px-6 py-12 sm:px-12">
-        <Link
-          href="/artikel"
-          className="mb-8 inline-flex text-[14px] font-medium text-sage hover:text-forest"
-        >
-          ← Zurück zu allen Artikeln
-        </Link>
+        <div className="mb-8">
+          <ArtikelBackButton />
+        </div>
 
         <div className="mb-6 flex flex-wrap items-center gap-3">
           {article.category && (
@@ -124,7 +118,7 @@ export default async function ArtikelDetailPage({ params }: Props) {
               {related.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/artikel/${r.slug}`}
+                  href={`/artikel/${r.slug}${relatedQuery}`}
                   className="group rounded-xl border border-sage/12 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-mint hover:shadow-lg"
                 >
                   {r.category && (
@@ -149,12 +143,7 @@ export default async function ArtikelDetailPage({ params }: Props) {
 
       <footer className="border-t border-sage/12 px-6 py-8 sm:px-12">
         <div className="mx-auto flex max-w-[720px] justify-center">
-          <Link
-            href="/artikel"
-            className="text-[14px] font-medium text-sage hover:text-forest"
-          >
-            ← Alle Artikel
-          </Link>
+          <ArtikelBackButton />
         </div>
       </footer>
     </div>

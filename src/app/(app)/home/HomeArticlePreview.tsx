@@ -25,7 +25,7 @@ export function HomeArticlePreview({ articles }: HomeArticlePreviewProps) {
   if (articles.length === 0) return null;
 
   return (
-    <section>
+    <section className="py-4">
       <SectionHeader
         title="Artikel"
         href="/artikel"

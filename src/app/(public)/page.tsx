@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getLatestArticles, getLatestPublicCollabs, getHighlightEvents } from "@/lib/supabase";
+import { getLatestArticles, getHighlightEvents } from "@/lib/supabase";
 import { LandingPageContent } from "@/components/landing/LandingPageContent";
 
 export const metadata: Metadata = {
@@ -20,13 +20,12 @@ export const metadata: Metadata = {
 };
 
 export default async function LandingPage() {
-  const [articles, collabs, events] = await Promise.all([
+  const [articles, events] = await Promise.all([
     getLatestArticles(3),
-    getLatestPublicCollabs(4),
     getHighlightEvents(5),
   ]);
 
   return (
-    <LandingPageContent articles={articles} collabs={collabs} events={events} />
+    <LandingPageContent articles={articles} events={events} />
   );
 }

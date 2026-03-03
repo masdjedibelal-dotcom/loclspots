@@ -4,43 +4,28 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { InterestsEditor } from "@/components/profile/InterestsEditor";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { CollabCard } from "@/components/collabs/CollabCard";
+import { ProfileChatrooms } from "@/components/profile/ProfileChatrooms";
+import { ProfileCollabs } from "@/components/profile/ProfileCollabs";
+import { ProfileEvents } from "@/components/profile/ProfileEvents";
+import { createClient } from "@/lib/supabase/client";
 import { logout } from "../actions";
 import { updateProfile } from "./actions";
 import { useToast } from "@/hooks/useToast";
 import type { Profile } from "@/lib/types";
-import type { Collab } from "@/lib/types";
 import type { Chatroom } from "@/lib/types";
 import type { Event } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const INTEREST_OPTIONS = [
-  "Wandern",
-  "Lesen",
-  "Kochen",
-  "Kultur",
-  "Sport",
-  "Musik",
-  "Reisen",
-  "Brettspiele",
-  "Tanzen",
-  "Fotografie",
-  "Kino",
-  "Sprachen",
-  "Kunst",
-  "Natur",
-] as const;
 
 type TabId = "collabs" | "chatrooms" | "events";
 
 interface ProfilClientProps {
   profile: Profile;
   stats: { collabs: number; chatrooms: number; events: number };
-  myCollabs: (Collab & { itemCount: number })[];
   myChatrooms: Chatroom[];
   myEvents: Event[];
   currentUserId: string;
@@ -49,7 +34,6 @@ interface ProfilClientProps {
 export function ProfilClient({
   profile,
   stats,
-  myCollabs,
   myChatrooms,
   myEvents,
   currentUserId,
@@ -63,11 +47,45 @@ export function ProfilClient({
   const [interests, setInterests] = useState<string[]>(profile.interests ?? []);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const toggleInterest = (name: string) => {
-    setInterests((prev) =>
-      prev.includes(name) ? prev.filter((i) => i !== name) : [...prev, name]
-    );
+  const handleLogout = () => {
+    logout();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "löschen") return;
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nicht eingeloggt");
+
+      // 1. Profil-Daten löschen (RLS policy: user can delete own profile)
+      await supabase.from("profiles").delete().eq("id", user.id);
+
+      // 2. Avatar aus Storage löschen
+      await supabase.storage.from("avatars").remove([`${user.id}.jpg`]);
+
+      // 3. Auth-Account löschen (Edge Function)
+      const { error: fnError } = await supabase.functions.invoke("delete-user");
+      if (fnError) throw fnError;
+
+      // 4. Ausloggen und zur Startseite
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (err) {
+      console.error("Delete error:", err);
+      setError("Löschen fehlgeschlagen. Bitte versuche es erneut.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -81,6 +99,11 @@ export function ProfilClient({
     }
     if (bio.length > 280) {
       setError("Bio darf maximal 280 Zeichen haben.");
+      setIsSaving(false);
+      return;
+    }
+    if (interests.length > 15) {
+      setError("Maximal 15 Interessen erlaubt.");
       setIsSaving(false);
       return;
     }
@@ -185,28 +208,7 @@ export function ProfilClient({
               />
               <p className="mt-1 text-right text-xs text-sage">{bio.length}/280</p>
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-forest">
-                Interessen
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {INTEREST_OPTIONS.map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => toggleInterest(name)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-sm transition-colors",
-                      interests.includes(name)
-                        ? "bg-forest text-cream"
-                        : "bg-warm text-sage hover:bg-sage/20"
-                    )}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <InterestsEditor value={interests} onChange={setInterests} />
             <Button
               onClick={handleSave}
               isLoading={isSaving}
@@ -246,89 +248,108 @@ export function ProfilClient({
 
         <div className="mt-6">
           {activeTab === "collabs" && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-              {myCollabs.map((collab) => (
-                <CollabCard
-                  key={collab.id}
-                  collab={collab}
-                  itemCount={collab.itemCount}
-                />
-              ))}
-              {myCollabs.length === 0 && (
-                <p className="py-8 text-center text-sage">
-                  Noch keine Collabs erstellt.
-                </p>
-              )}
-            </div>
+            <ProfileCollabs
+              userId={currentUserId}
+              profile={profile}
+            />
           )}
 
           {activeTab === "chatrooms" && (
-            <div className="space-y-2">
-              {myChatrooms.map((room) => (
-                <Link
-                  key={room.id}
-                  href={`/chatrooms/${room.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-warm p-4 transition-colors hover:border-sage/50"
-                >
-                  <span className="text-2xl">{room.emoji}</span>
-                  <div>
-                    <p className="font-medium text-forest">{room.name}</p>
-                    <p className="text-xs text-sage">{room.member_count} Mitglieder</p>
-                  </div>
-                </Link>
-              ))}
-              {myChatrooms.length === 0 && (
-                <p className="py-8 text-center text-sage">
-                  Noch keinen Chatrooms beigetreten.
-                </p>
-              )}
-            </div>
+            <ProfileChatrooms chatrooms={myChatrooms} />
           )}
 
           {activeTab === "events" && (
-            <div className="space-y-2">
-              {myEvents.map((event) => (
-                <Link
-                  key={event.id}
-                  href="/events"
-                  className="flex items-center gap-3 rounded-xl border border-warm p-4 transition-colors hover:border-sage/50"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sage/10 text-sage">
-                    📅
-                  </div>
-                  <div>
-                    <p className="font-medium text-forest">{event.title}</p>
-                    <p className="text-xs text-sage">
-                      {new Date(event.date ?? event.start_datetime ?? event.start_date ?? "").toLocaleDateString("de-DE", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-              {myEvents.length === 0 && (
-                <p className="py-8 text-center text-sage">
-                  Keine Events angemeldet.
-                </p>
-              )}
-            </div>
+            <ProfileEvents events={myEvents} />
           )}
         </div>
       </div>
 
-      {/* Logout */}
-      <div className="border-t border-warm pt-8">
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-lg px-3 py-2 text-sm text-sage transition-colors hover:bg-sage/10 hover:text-peach"
-          >
-            Abmelden
-          </button>
-        </form>
+      {/* Trennlinie */}
+      <div className="mt-8 space-y-3 border-t border-sage/20 pt-6">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-sage/30 px-4 py-3 text-sm font-medium text-sage transition-colors hover:bg-sage/10 hover:text-forest"
+        >
+          <span>↩</span> Ausloggen
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setShowDeleteModal(true);
+            setError(null);
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 px-4 py-3 text-sm text-red-500 transition-colors hover:bg-red-50"
+        >
+          Konto löschen
+        </button>
       </div>
+
+      {/* Konto löschen Modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-modal-title"
+          onClick={(e) =>
+            e.target === e.currentTarget && (setShowDeleteModal(false), setDeleteConfirm(""))
+          }
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="delete-modal-title" className="mb-2 text-lg font-semibold text-forest">
+              Konto wirklich löschen?
+            </h3>
+            <p className="mb-6 text-sm text-sage">
+              Dein Profil, deine Nachrichten und alle erstellten Collabs werden
+              dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+            </p>
+
+            {/* Bestätigung per Texteingabe */}
+            <p className="mb-2 text-xs text-sage">
+              Gib <strong>löschen</strong> ein um zu bestätigen:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder="löschen"
+              className="mb-4 w-full rounded-xl border border-sage/20 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-red-300"
+            />
+
+            {error && (
+              <p className="mb-4 text-sm text-peach" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirm("");
+                  setError(null);
+                }}
+                className="flex-1 rounded-xl border border-sage/30 py-2.5 text-sm text-sage transition-colors hover:bg-sage/10"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirm !== "löschen" || isDeleting}
+                className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isDeleting ? "Wird gelöscht…" : "Konto löschen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

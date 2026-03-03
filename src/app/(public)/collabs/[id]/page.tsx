@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCollabWithItems } from "@/lib/collabs";
 import { Badge } from "@/components/ui/Badge";
-import { PlaceCardEditorial } from "@/components/collabs/PlaceCardEditorial";
+import { CollabPlacesList } from "@/components/collabs/CollabPlacesList";
 import { CollabActions } from "./CollabActions";
 import { CollabPageHeader } from "./CollabPageHeader";
 import type { Metadata } from "next";
@@ -83,16 +83,7 @@ export default async function CollabEditorialPage({ params }: Props) {
         <div className="h-px bg-sage/20" aria-hidden />
 
         <section className="py-16">
-          <div className="space-y-24">
-            {items.map((item, i) => (
-              <PlaceCardEditorial
-                key={item.id}
-                item={item}
-                index={i}
-                reverse={i % 2 === 1}
-              />
-            ))}
-          </div>
+          <CollabPlacesList items={items} />
         </section>
 
         {relatedCollabs.length > 0 && (
@@ -124,7 +115,7 @@ export default async function CollabEditorialPage({ params }: Props) {
             Entdecke mehr in der LoclSpots Community
           </h2>
           <p className="mt-2 text-white/90">
-            Kuratierte Listen, Chatrooms und Events — für Menschen, die echten
+            Collabs, Chatrooms und Events — für Menschen, die echten
             Austausch suchen.
           </p>
           <Link

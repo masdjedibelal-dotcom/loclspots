@@ -19,7 +19,7 @@ const sourceSans = Source_Sans_3({
 export const metadata: Metadata = {
   title: "LoclSpots — Gespräche, die verbinden",
   description:
-    "Die Community für Menschen 30+. Thematische Chatrooms, kuratierte Listen, echte Verbindungen.",
+    "Die Community für Menschen 30+. Thematische Chatrooms, Collabs, echte Verbindungen.",
 };
 
 export const viewport: Viewport = {

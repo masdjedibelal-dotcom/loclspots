@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMessages } from "@/lib/messages";
+import { ChatroomMembers } from "@/components/chat/ChatroomMembers";
 import { ChatWindow } from "@/components/chat/ChatWindow";
-import { Avatar } from "@/components/ui/Avatar";
 import type { Chatroom, Profile } from "@/lib/types";
 
 interface PageProps {
@@ -51,7 +51,7 @@ export default async function ChatroomPage({ params }: PageProps) {
     .from("chatroom_members")
     .select("user_id")
     .eq("chatroom_id", id)
-    .limit(20);
+    .limit(100);
 
   const memberUserIds = members?.map((m) => m.user_id) ?? [];
   const { data: memberProfiles } = await supabase
@@ -96,26 +96,7 @@ export default async function ChatroomPage({ params }: PageProps) {
 
         <div>
           <h3 className="font-semibold text-forest">Mitglieder</h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(memberProfiles ?? []).slice(0, 8).map((profile) => (
-              <div
-                key={profile.id}
-                className="flex flex-col items-center gap-1"
-                title={profile.display_name}
-              >
-                <Avatar
-                  url={profile.avatar_url}
-                  name={profile.display_name}
-                  size="sm"
-                />
-              </div>
-            ))}
-            {memberProfiles && memberProfiles.length > 8 && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-warm text-xs text-sage">
-                +{memberProfiles.length - 8}
-              </div>
-            )}
-          </div>
+          <ChatroomMembers members={memberProfiles ?? []} />
         </div>
 
         {linkedCollabs && linkedCollabs.length > 0 && (

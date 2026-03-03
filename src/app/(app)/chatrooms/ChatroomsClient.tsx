@@ -73,22 +73,18 @@ export function ChatroomsClient({
         />
       </div>
 
-      {/* Gruppiert: Kategorien als Überschriften, Unterkategorien darunter */}
+      {/* Kategorisierte Chatrooms */}
       {filteredBySearch.categories.map((cat) => {
         const children = filteredBySearch.subcategories
           .filter((s) => s.parent_id === cat.id)
           .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        if (children.length === 0) return null;
 
         return (
           <div key={cat.id} className="mb-6">
-            <div className="mb-2 flex items-center gap-2 px-1 py-2">
-              <span className="text-xl" role="img" aria-hidden>
-                {cat.emoji}
-              </span>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-sage">
-                {cat.name}
-              </h3>
-            </div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-sage px-4 mb-2">
+              {cat.emoji} {cat.name}
+            </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
               {children.map((room) => (
                 <ChatroomCard
@@ -104,14 +100,12 @@ export function ChatroomsClient({
         );
       })}
 
-      {/* Chatrooms ohne Parent */}
+      {/* Alte Chatrooms ohne Kategorie — als Fallback anzeigen */}
       {orphans.length > 0 && (
         <div className="mb-6">
-          <div className="mb-2 flex items-center gap-2 px-1 py-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-sage">
-              Weitere
-            </h3>
-          </div>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-sage px-4 mb-2">
+            Weitere Chatrooms
+          </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
             {orphans
               .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))

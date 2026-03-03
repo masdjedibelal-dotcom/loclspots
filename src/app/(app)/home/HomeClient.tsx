@@ -15,20 +15,20 @@ export function HomeClient({
   chatrooms,
 }: HomeClientProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Begrüßung */}
-      <div>
-        <h1 className="font-serif text-2xl text-forest sm:text-3xl">
+      <div className="pb-2">
+        <h1 className="font-serif text-2xl font-semibold text-forest sm:text-3xl">
           {greeting}, {displayName}!
         </h1>
-        <p className="mt-1 text-sage">
+        <p className="mt-1 text-sm text-sage">
           Was passiert gerade in deiner Community.
         </p>
       </div>
 
       {/* Chatrooms – 3 Karten, horizontal scrollbar Mobile */}
       {chatrooms.length > 0 && (
-        <section>
+        <section className="py-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-lg font-semibold text-forest">

@@ -20,7 +20,7 @@ export function HomeEventsPreview({ events }: HomeEventsPreviewProps) {
   if (events.length === 0) return null;
 
   return (
-    <section>
+    <section className="py-4">
       <SectionHeader
         title="Events"
         href="/events"

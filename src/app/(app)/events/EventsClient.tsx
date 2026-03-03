@@ -17,21 +17,25 @@ const CATEGORY_EMOJI: Record<string, string> = {
   "Kabarett & Comedy": "🎤",
   Ausstellungen: "🖼️",
   Sport: "⚽",
+  "Flohmärkte & Märkte": "🛒",
   "Märkte & Flohmärkte": "🛒",
   Shows: "🎪",
   Kabarett: "🎤",
   Sonstiges: "📌",
 };
 
+const HIGHLIGHTS_ID = "⭐ Highlights";
+
 const FILTER_TABS = [
   { id: "all", label: "Alle" },
+  { id: HIGHLIGHTS_ID, label: HIGHLIGHTS_ID },
   { id: "Konzerte", label: "Konzerte" },
   { id: "Theater", label: "Theater" },
-  { id: "Party & Club", label: "Party & Club" },
   { id: "Kabarett & Comedy", label: "Kabarett & Comedy" },
+  { id: "Party & Club", label: "Party & Club" },
   { id: "Ausstellungen", label: "Ausstellungen" },
   { id: "Sport", label: "Sport" },
-  { id: "Märkte & Flohmärkte", label: "Märkte & Flohmärkte" },
+  { id: "Flohmärkte & Märkte", label: "Flohmärkte & Märkte" },
   { id: "Sonstiges", label: "Sonstiges" },
 ] as const;
 
@@ -87,18 +91,23 @@ export function EventsClient({
       >
         {FILTER_TABS.map((tab) => {
           const isActive = categoryFilter === tab.id;
+          const isHighlightsTab = tab.id === HIGHLIGHTS_ID;
           return (
             <Link
               key={tab.id}
               href={buildFilterUrl(tab.id)}
               className={cn(
-                "whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-forest text-white"
-                  : "border border-sage/40 bg-transparent text-sage hover:border-forest hover:bg-forest/10 hover:text-forest"
+                "flex-none whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                isHighlightsTab
+                  ? isActive
+                    ? "bg-amber-500 text-white"
+                    : "border border-amber-200 bg-amber-50 text-amber-700"
+                  : isActive
+                    ? "bg-forest text-white"
+                    : "border border-sage/40 bg-transparent text-sage hover:border-forest hover:bg-forest/10 hover:text-forest"
               )}
             >
-              {CATEGORY_EMOJI[tab.id] ?? "📌"} {tab.label}
+              {isHighlightsTab ? tab.label : `${CATEGORY_EMOJI[tab.id] ?? "📌"} ${tab.label}`}
             </Link>
           );
         })}
