@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export function EntdeckenTabs() {
   const pathname = usePathname();
-  const isArtikel = pathname.startsWith("/entdecken/artikel");
+  const isArtikel = pathname.startsWith("/artikel");
 
   return (
     <div className="flex gap-2 border-b border-sage/20 pb-4">
@@ -22,7 +22,7 @@ export function EntdeckenTabs() {
         Collabs
       </Link>
       <Link
-        href="/entdecken/artikel"
+        href="/artikel"
         className={cn(
           "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
           isArtikel

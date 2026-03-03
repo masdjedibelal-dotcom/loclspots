@@ -34,7 +34,7 @@ export function ArtikelClient({
       {articles.map((article) => (
         <Link
           key={article.id}
-          href={`/entdecken/artikel/${article.slug}`}
+          href={`/artikel/${article.slug}`}
           className={cn(
             "group flex flex-col overflow-hidden rounded-xl border border-sage/12 bg-white p-6",
             "transition-all duration-300 hover:-translate-y-0.5 hover:border-mint hover:shadow-lg hover:shadow-forest/10"

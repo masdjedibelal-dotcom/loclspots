@@ -14,7 +14,7 @@ type PageProps = {
 export default async function EntdeckenPage({ searchParams }: PageProps) {
   const params = await searchParams;
   if (params.tab === "artikel") {
-    redirect("/entdecken/artikel");
+    redirect("/artikel");
   }
 
   const supabase = await createClient();

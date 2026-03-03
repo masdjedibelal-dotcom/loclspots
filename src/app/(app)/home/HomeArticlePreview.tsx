@@ -28,7 +28,7 @@ export function HomeArticlePreview({ articles }: HomeArticlePreviewProps) {
     <section className="py-4">
       <SectionHeader
         title="Artikel"
-        href="/entdecken/artikel"
+        href="/artikel"
         linkText="Alle Artikel →"
         titleClassName="font-serif text-xl font-bold text-forest sm:text-2xl"
         className="mb-4"
@@ -38,7 +38,7 @@ export function HomeArticlePreview({ articles }: HomeArticlePreviewProps) {
         {articles.map((article) => (
           <Link
             key={article.id}
-            href={`/entdecken/artikel/${article.slug}`}
+            href={`/artikel/${article.slug}`}
             className="group flex flex-col overflow-hidden rounded-xl border border-warm bg-white p-4 transition-all hover:border-mint hover:shadow-lg"
           >
             {article.category && (
