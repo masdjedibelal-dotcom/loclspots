@@ -1,1 +1,0 @@
-export { ChatroomCTA } from "./ChatroomCTA";
