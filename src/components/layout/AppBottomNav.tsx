@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageCircle, BookOpen, Calendar, User } from "lucide-react";
+import { Home, MessageCircle, BookOpen, FileText, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/chatrooms", icon: MessageCircle, label: "Chatrooms" },
   { href: "/entdecken", icon: BookOpen, label: "Entdecken" },
+  { href: "/entdecken/artikel", icon: FileText, label: "Artikel" },
   { href: "/events", icon: Calendar, label: "Events" },
   { href: "/profil", icon: User, label: "Profil" },
 ];
