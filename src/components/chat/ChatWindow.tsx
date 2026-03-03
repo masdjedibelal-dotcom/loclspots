@@ -137,7 +137,7 @@ export function ChatWindow({
                   showDateSeparator ? formatDateLabel(new Date(message.created_at)) : undefined
                 }
                 showName={showName}
-                isFirstUnread={isFirstUnread}
+                isFirstUnread={!!isFirstUnread}
                 onReaction={handleReaction}
                 onDelete={handleDelete}
                 onReply={(msg) => setReplyTo(msg)}
