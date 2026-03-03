@@ -3,7 +3,7 @@ import { HomeClient } from "./HomeClient";
 import { HomeCollabPreview } from "./HomeCollabPreview";
 import { HomeEventsPreview } from "./HomeEventsPreview";
 import { HomeArticlePreview } from "./HomeArticlePreview";
-import type { Chatroom } from "@/lib/types";
+import type { Article, Chatroom } from "@/lib/types";
 
 export const revalidate = 60;
 
@@ -58,6 +58,8 @@ export default async function HomePage() {
         .limit(3),
     ]);
 
+  const articles = (articlesRes.data ?? []) as Article[];
+
   const chatrooms =
     !chatroomsRes.error && (chatroomsRes.data ?? []).length > 0
       ? (chatroomsRes.data as Chatroom[])
@@ -70,7 +72,6 @@ export default async function HomePage() {
         ).data ?? []) as Chatroom[];
   const featuredCollabs = collabsRes.data ?? [];
   const events = highlightsRes.data ?? [];
-  const articles = articlesRes.data ?? [];
 
   return (
     <div className="space-y-8 pb-8">

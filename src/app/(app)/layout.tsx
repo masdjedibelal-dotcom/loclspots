@@ -27,9 +27,9 @@ export default async function AppLayout({
   const avatarUrl = profile?.avatar_url ?? null;
 
   return (
-    <div className="flex min-h-screen bg-cream">
+    <div className="flex min-h-screen min-w-0 bg-cream">
       <AppSidebar displayName={displayName} avatarUrl={avatarUrl} />
-      <main className="flex-1 pb-20 lg:pb-0">
+      <main className="min-w-0 flex-1 overflow-x-hidden pb-20 lg:pb-0">
         <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
           {children}
         </div>

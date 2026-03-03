@@ -42,27 +42,27 @@ export function HomeCollabPreview({ collabs }: HomeCollabPreviewProps) {
 
   return (
     <section className="py-6">
-      <div className="mb-3 flex items-center justify-between px-4">
-        <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-forest">
             📍 Entdecke München
           </h2>
           <p className="text-sm text-sage">Kuratierte Listen von Locals</p>
         </div>
-        <Link href="/collabs" className="text-sm font-medium text-forest">
+        <Link href="/collabs" className="text-sm font-medium text-forest shrink-0">
           Alle anzeigen →
         </Link>
       </div>
 
       <div
-        className="flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x snap-mandatory"
+        className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth md:mx-0 md:px-0"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {collabs.map((collab) => (
           <Link
             key={collab.id}
             href={`/collabs/${collab.id}`}
-            className="flex shrink-0 w-[72vw] snap-start overflow-hidden rounded-2xl border border-warm bg-white transition-shadow hover:shadow-md sm:w-64"
+            className="flex shrink-0 w-[72vw] min-w-0 snap-start overflow-hidden rounded-2xl border border-warm bg-white transition-shadow hover:shadow-md sm:w-64"
           >
             <div
               className={cn(

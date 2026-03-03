@@ -70,11 +70,11 @@ export default async function EventsPage({
     if (p.user_id === user.id) myParticipantIds.add(p.event_id);
   }
 
-  const events: Event[] = (eventsData ?? []).map((e) => ({
+  const events = (eventsData ?? []).map((e) => ({
     ...e,
     participant_count: participantCountMap.get(e.id) ?? 0,
     is_participating: myParticipantIds.has(e.id),
-  }));
+  })) as Event[];
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / ITEMS_PER_PAGE));
 

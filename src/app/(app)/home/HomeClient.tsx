@@ -29,8 +29,8 @@ export function HomeClient({
       {/* Chatrooms – 3 Karten, horizontal scrollbar Mobile */}
       {chatrooms.length > 0 && (
         <section>
-          <div className="mb-3 flex items-center justify-between">
-            <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <h2 className="text-lg font-semibold text-forest">
                 💬 Aktive Chatrooms
               </h2>
@@ -40,7 +40,7 @@ export function HomeClient({
             </div>
             <Link
               href="/chatrooms"
-              className="text-sm font-medium text-forest"
+              className="shrink-0 text-sm font-medium text-forest"
             >
               Alle anzeigen →
             </Link>
