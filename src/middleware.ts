@@ -1,31 +1,33 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATTERNS = [
-  /^\/$/,
+// OFFEN (kein Login nötig)
+const PUBLIC_ROUTES = [
+  /^\/$/,                   // Startseite (Landing)
   /^\/login$/,
   /^\/register$/,
-  /^\/artikel$/,
-  /^\/artikel\/[^/]+$/, // /artikel/[slug]
-  /^\/collabs$/,
-  /^\/collabs\/[^/]+$/, // /collabs/[id] – außer /collabs/new (UUID vs "new" – new wird geprüft)
-  /^\/events$/,
-  /^\/events\/[^/]+$/, // /events/[id]
+  /^\/artikel$/,            // öffentliche Artikel-Liste
+  /^\/artikel\/[^/]+$/,     // öffentliche Artikel-Detail
 ];
 
-const PROTECTED_PREFIXES = ["/dashboard", "/home", "/chatrooms", "/entdecken", "/profil"];
+// GESCHLOSSEN (Login erforderlich)
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/home",
+  "/entdecken",              // Collabs + Artikel im Dashboard
+  "/collabs",                // Collab-Liste + Collab-Detailseiten
+  "/chatrooms",
+  "/events",
+  "/profil",
+];
 
 function isPublicRoute(pathname: string): boolean {
-  if (pathname === "/collabs/new" || /^\/collabs\/[^/]+\/edit$/.test(pathname)) {
-    return false;
-  }
-  return PUBLIC_PATTERNS.some((re) => re.test(pathname));
+  return PUBLIC_ROUTES.some((re) => re.test(pathname));
 }
 
 function isProtectedRoute(pathname: string): boolean {
   if (isPublicRoute(pathname)) return false;
-  if (pathname === "/collabs/new" || /^\/collabs\/[^/]+\/edit$/.test(pathname)) return true;
-  return PROTECTED_PREFIXES.some(
+  return PROTECTED_ROUTES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }
