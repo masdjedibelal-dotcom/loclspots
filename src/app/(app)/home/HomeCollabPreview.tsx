@@ -42,25 +42,28 @@ export function HomeCollabPreview({ collabs }: HomeCollabPreviewProps) {
 
   return (
     <section className="py-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-forest">📍 Collabs</h2>
-          <p className="text-sm text-sage">Kuratierte Orte & Listen für München</p>
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">📍 Collabs</h2>
+          <p className="text-xs text-gray-500">
+            Kuratierte Orte & Listen für München
+          </p>
         </div>
-        <Link href="/collabs" className="text-sm font-medium text-forest shrink-0">
+        <Link href="/collabs" className="text-sm font-medium text-[#2D5016]">
           Alle Collabs →
         </Link>
       </div>
 
-      <div
-        className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth md:mx-0 md:px-0"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
+      <div className="-mx-4">
+        <div
+          className="flex gap-3 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scrollbar-hide scroll-smooth md:mx-0 md:px-0"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
         {collabs.map((collab) => (
           <Link
             key={collab.id}
             href={`/collabs/${collab.id}`}
-            className="flex shrink-0 w-[72vw] min-w-0 snap-start overflow-hidden rounded-2xl border border-warm bg-white shadow-sm transition-shadow hover:shadow-md sm:w-60"
+            className="flex shrink-0 w-[72vw] min-w-0 snap-start overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow hover:shadow-sm sm:w-60"
           >
             <div
               className={cn(
@@ -81,12 +84,13 @@ export function HomeCollabPreview({ collabs }: HomeCollabPreviewProps) {
                   {collab.category}
                 </span>
               )}
-              <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-forest">
+              <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
                 {collab.title}
               </h3>
             </div>
           </Link>
         ))}
+        </div>
       </div>
     </section>
   );

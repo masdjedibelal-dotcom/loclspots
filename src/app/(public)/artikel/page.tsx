@@ -1,11 +1,9 @@
+import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { supabasePublic } from "@/lib/supabase/public";
-import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
-import { cn } from "@/lib/utils";
 
-import { PAGINATION } from "@/lib/constants";
+const ITEMS_PER_PAGE = 9;
 
 const CATEGORIES = [
   "",
@@ -13,20 +11,6 @@ const CATEGORIES = [
   "Neue Leute kennenlernen",
   "Stadtteile & Viertel",
 ] as const;
-
-const CATEGORY_COLORS: Record<string, "green" | "peach" | "muted"> = {
-  "Aktivitäten & Sport": "green",
-  "Neue Leute kennenlernen": "peach",
-  "Stadtteile & Viertel": "muted",
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("de-DE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 type Props = { searchParams: Promise<{ page?: string; category?: string }> };
 
@@ -49,126 +33,123 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function ArtikelPage({ searchParams }: Props) {
   const params = await searchParams;
-  const currentPage = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+  const currentPage = Number(params.page ?? 1);
   const category = params.category ?? "";
+  const from = (currentPage - 1) * ITEMS_PER_PAGE;
+  const to = from + ITEMS_PER_PAGE - 1;
 
-  const from = (currentPage - 1) * PAGINATION.ARTICLES;
-  const to = from + PAGINATION.ARTICLES - 1;
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  // Count
-  let countQuery = supabasePublic
+  let countQuery = supabase
     .from("articles")
     .select("*", { count: "exact", head: true })
     .eq("is_published", true)
     .eq("is_public", true);
-
-  if (category) {
-    countQuery = countQuery.eq("category", category);
-  }
+  if (category) countQuery = countQuery.eq("category", category);
   const { count } = await countQuery;
-  const totalPages = Math.ceil((count ?? 0) / PAGINATION.ARTICLES);
+  const totalPages = Math.ceil((count ?? 0) / ITEMS_PER_PAGE);
 
-  // Daten
-  let dataQuery = supabasePublic
+  let dataQuery = supabase
     .from("articles")
-    .select("id, slug, title, excerpt, content, category, created_at")
+    .select("id, slug, title, excerpt, category, created_at")
     .eq("is_published", true)
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .range(from, to);
-
-  if (category) {
-    dataQuery = dataQuery.eq("category", category);
-  }
+  if (category) dataQuery = dataQuery.eq("category", category);
   const { data: articles } = await dataQuery;
 
-  const filterParams: Record<string, string> | undefined = category
-    ? { category }
-    : undefined;
-
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <h1 className="mb-1 font-serif text-2xl font-semibold text-forest sm:text-3xl">
-        Artikel
-      </h1>
-      <p className="mb-6 text-sm text-sage">
-        Tipps & Stories für München ab 30
-      </p>
-
-      {/* Kategorie-Filter */}
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
-        {CATEGORIES.map((cat) => (
-          <Link
-            key={cat || "alle"}
-            href={
-              cat
-                ? `/artikel?category=${encodeURIComponent(cat)}`
-                : "/artikel"
-            }
-            className={cn(
-              "flex-none whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-              (category === cat || (!category && !cat))
-                ? "bg-forest text-white"
-                : "border border-sage/40 bg-transparent text-sage hover:border-forest hover:bg-forest/10 hover:text-forest"
-            )}
-          >
-            {cat || "Alle"}
+    <>
+      {/* Public Header */}
+      <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
+          <Link href="/">
+            <span className="text-xl font-bold">
+              <span className="text-gray-900">Locl</span>
+              <span className="text-[#E8651A]">Spots</span>
+            </span>
           </Link>
-        ))}
-      </div>
+          <Link
+            href="/login"
+            className="rounded-full border border-gray-300 px-4 py-1.5 text-sm"
+          >
+            Einloggen
+          </Link>
+        </div>
+      </header>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {articles?.length === 0 ? (
-          <p className="col-span-full py-12 text-center text-sage">
-            Keine Artikel in dieser Kategorie.
-          </p>
-        ) : (
-          articles?.map((article) => (
+      <main className="mx-auto max-w-2xl px-4 py-6">
+        <h1 className="mb-1 text-2xl font-semibold">Artikel</h1>
+        <p className="mb-6 text-sm text-gray-500">
+          Tipps & Stories für München ab 30
+        </p>
+
+        {/* Kategorie Filter */}
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat || "alle"}
+              href={cat ? `/artikel?category=${encodeURIComponent(cat)}` : "/artikel"}
+              className={`flex-none whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                category === cat || (!category && !cat)
+                  ? "bg-[#2D5016] text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {cat || "Alle"}
+            </Link>
+          ))}
+        </div>
+
+        {/* Artikel Liste */}
+        <div className="space-y-3">
+          {!articles?.length ? (
+            <p className="py-12 text-center text-gray-500">
+              Keine Artikel in dieser Kategorie.
+            </p>
+          ) : (
+            articles.map((article) => (
             <Link
               key={article.id}
               href={`/artikel/${article.slug}`}
-              className={cn(
-                "group flex flex-col overflow-hidden rounded-xl border border-sage/12 bg-white p-6",
-                "transition-all duration-300 hover:-translate-y-0.5 hover:border-mint hover:shadow-lg hover:shadow-forest/10"
-              )}
+              className="block rounded-2xl border border-gray-100 bg-white p-4 transition-shadow hover:shadow-sm"
             >
               {article.category && (
-                <Badge
-                  variant={CATEGORY_COLORS[article.category] ?? "green"}
-                  className="mb-3 w-fit"
-                >
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                   {article.category}
-                </Badge>
+                </span>
               )}
-              <h2 className="line-clamp-2 font-semibold leading-snug text-forest group-hover:text-sage">
+              <h2 className="mt-2 line-clamp-2 font-semibold text-gray-900">
                 {article.title}
               </h2>
-              {(article.excerpt || article.content) && (
-                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted">
-                  {(article.excerpt ?? article.content ?? "")
-                    .replace(/\s+/g, " ")
-                    .trim()}
+              {article.excerpt && (
+                <p className="mt-1 line-clamp-2 text-sm text-gray-500">
+                  {article.excerpt}
                 </p>
               )}
-              <time
-                dateTime={article.created_at}
-                className="mt-4 block text-xs text-sage"
-              >
-                {formatDate(article.created_at)}
-              </time>
+              <span className="mt-2 block text-xs text-gray-400">
+                {new Date(article.created_at).toLocaleDateString("de-DE", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
             </Link>
           ))
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Paginierung */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        basePath="/artikel"
-        searchParams={filterParams}
-      />
-    </main>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          basePath="/artikel"
+          searchParams={category ? { category } : {}}
+        />
+      </main>
+    </>
   );
 }

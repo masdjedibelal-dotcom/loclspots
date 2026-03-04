@@ -5,11 +5,11 @@ import type { Collab } from "@/lib/types";
 
 interface CollabWithItemCount extends Collab {
   itemCount: number;
+  photos?: string[];
 }
 
 interface EntdeckenClientProps {
   collabs: CollabWithItemCount[];
-  articles: { id: string }[];
   currentUserId: string;
 }
 

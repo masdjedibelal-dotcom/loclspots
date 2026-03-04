@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppSidebar } from "@/components/layout/AppSidebar";
-import { AppBottomNav } from "@/components/layout/AppBottomNav";
+import { AppHeader } from "@/components/AppHeader";
+import { BottomNav } from "@/components/BottomNav";
 
 export default async function AppLayout({
   children,
@@ -17,24 +17,13 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url")
-    .eq("id", user.id)
-    .single();
-
-  const displayName = profile?.display_name ?? "Nutzer";
-  const avatarUrl = profile?.avatar_url ?? null;
-
   return (
-    <div className="flex min-h-screen min-w-0 bg-cream">
-      <AppSidebar displayName={displayName} avatarUrl={avatarUrl} />
-      <main className="min-w-0 flex-1 overflow-x-hidden pb-20 lg:pb-0">
-        <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-          {children}
-        </div>
+    <div className="min-h-screen bg-[#F5F3EE]">
+      <AppHeader />
+      <main className="mx-auto max-w-2xl px-4 pb-24 pt-2">
+        {children}
       </main>
-      <AppBottomNav />
+      <BottomNav />
     </div>
   );
 }

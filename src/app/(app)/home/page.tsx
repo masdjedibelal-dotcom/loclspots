@@ -33,45 +33,47 @@ export default async function HomePage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const [chatroomsRes, collabsRes, highlightsRes, articlesRes] =
-    await Promise.all([
-      supabase.rpc("get_most_active_chatrooms", { p_limit: 4 }),
-      supabase
-        .from("collabs")
-        .select("id, title, description, category, cover_emoji")
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(4),
-      supabase
-        .from("events")
-        .select("id, title, start_date, start_time, venue_name, category, cover_image_url")
-        .eq("highlights", true)
-        .eq("is_cancelled", false)
-        .gte("start_date", today)
-        .order("start_date", { ascending: true })
-        .limit(5),
-      supabase
-        .from("articles")
-        .select("id, slug, title, excerpt, category, created_at")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false })
-        .limit(3),
-    ]);
+  const [chatroomsRes, collabsRes, eventsRes, articlesRes] = await Promise.all([
+    // Chatrooms: 4 aktivste (View hat kein is_category — Kategorien per Name ausschließen)
+    supabase
+      .from("chatroom_with_member_count")
+      .select("id, name, description, emoji, category, member_count")
+      .not("name", "in", "('Sport & Fitness','Kultur & Kreativ','Essen & Trinken','Stadtleben','Soziales')")
+      .order("member_count", { ascending: false })
+      .limit(4),
 
+    // Collabs: 4 neueste
+    supabase
+      .from("collabs")
+      .select("id, title, category, cover_emoji")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(4),
+
+    // Events: nächste 5
+    supabase
+      .from("events")
+      .select("id, title, start_date, start_time, venue_name, category")
+      .eq("is_cancelled", false)
+      .eq("is_public", true)
+      .gte("start_date", today)
+      .order("start_date", { ascending: true })
+      .limit(5),
+
+    // Artikel: 3 neueste
+    supabase
+      .from("articles")
+      .select("id, slug, title, excerpt, category, created_at")
+      .eq("is_published", true)
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(3),
+  ]);
+
+  const chatrooms = (chatroomsRes.data ?? []) as Chatroom[];
+  const collabs = collabsRes.data ?? [];
+  const events = eventsRes.data ?? [];
   const articles = (articlesRes.data ?? []) as Article[];
-
-  const chatrooms =
-    !chatroomsRes.error && (chatroomsRes.data ?? []).length > 0
-      ? (chatroomsRes.data as Chatroom[])
-      : ((await supabase
-          .from("chatroom_with_member_count")
-          .select("id, name, description, emoji, member_count")
-          .eq("is_category", false)
-          .order("member_count", { ascending: false })
-          .limit(4)
-        ).data ?? []) as Chatroom[];
-  const featuredCollabs = collabsRes.data ?? [];
-  const events = highlightsRes.data ?? [];
 
   return (
     <div className="space-y-8 pb-8">
@@ -80,7 +82,7 @@ export default async function HomePage() {
         greeting={greeting}
         chatrooms={chatrooms}
       />
-      <HomeCollabPreview collabs={featuredCollabs} />
+      <HomeCollabPreview collabs={collabs} />
       <HomeEventsPreview events={events} />
       <HomeArticlePreview articles={articles} />
     </div>

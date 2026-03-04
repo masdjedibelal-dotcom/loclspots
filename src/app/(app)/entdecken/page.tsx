@@ -1,21 +1,43 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EntdeckenClient } from "./EntdeckenClient";
+import { Pagination } from "@/components/ui/Pagination";
 import type { Collab, Profile } from "@/lib/types";
+
+const ITEMS_PER_PAGE = 12;
+
+const CATEGORIES = [
+  { value: "", label: "Alle" },
+  { value: "Essen & Trinken", label: "🍽️ Essen" },
+  { value: "Outdoor", label: "🌿 Outdoor" },
+  { value: "Kultur", label: "🎭 Kultur" },
+  { value: "Sport", label: "🏃 Sport" },
+  { value: "After Work", label: "🍸 After Work" },
+  { value: "Sonstiges", label: "📍 Sonstiges" },
+];
+
+// Relation place_id -> place (PostgREST: column ohne _id)
+interface CollabItemRow {
+  place_id: string;
+  position: number;
+  place?: { id: string; name: string; img_url: string | null };
+}
 
 interface CollabWithItemCount extends Collab {
   itemCount: number;
+  photos?: string[];
 }
 
 type PageProps = {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ page?: string; category?: string }>;
 };
 
 export default async function EntdeckenPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  if (params.tab === "artikel") {
-    redirect("/artikel");
-  }
+  const currentPage = Number(params.page ?? 1);
+  const activeCategory = params.category ?? "";
+  const from = (currentPage - 1) * ITEMS_PER_PAGE;
+  const to = from + ITEMS_PER_PAGE - 1;
 
   const supabase = await createClient();
   const {
@@ -24,12 +46,46 @@ export default async function EntdeckenPage({ searchParams }: PageProps) {
 
   if (!user) return null;
 
-  const [collabsResult] = await Promise.all([
+  const [countResult, collabsResult] = await Promise.all([
     (async () => {
-      const { data: rawCollabs } = await supabase
+      let countQuery = supabase
         .from("collabs")
-        .select("id, title, description, category, chatroom_id, creator_id, cover_emoji, likes_count, created_at")
-        .order("created_at", { ascending: false });
+        .select("*", { count: "exact", head: true })
+        .eq("is_public", true);
+      if (activeCategory) countQuery = countQuery.eq("category", activeCategory);
+      const { count } = await countQuery;
+      return count ?? 0;
+    })(),
+    (async () => {
+      let dataQuery = supabase
+        .from("collabs")
+        .select(`
+          id,
+          title,
+          description,
+          category,
+          chatroom_id,
+          creator_id,
+          cover_emoji,
+          likes_count,
+          is_public,
+          created_at,
+          collab_items (
+            place_id,
+            position,
+            place (
+              id,
+              name,
+              img_url
+            )
+          )
+        `)
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (activeCategory) dataQuery = dataQuery.eq("category", activeCategory);
+
+      const { data: rawCollabs } = await dataQuery;
 
       if (!rawCollabs?.length) return [] as CollabWithItemCount[];
 
@@ -43,33 +99,85 @@ export default async function EntdeckenPage({ searchParams }: PageProps) {
         (profiles ?? []).map((p) => [p.id, p as Profile])
       );
 
-      const { data: itemCounts } = await supabase
-        .from("collab_items")
-        .select("collab_id");
+      type Row = (typeof rawCollabs)[number] & {
+        collab_items?: CollabItemRow[] | null;
+      };
 
-      const countMap = new Map<string, number>();
-      for (const item of itemCounts ?? []) {
-        countMap.set(
-          item.collab_id,
-          (countMap.get(item.collab_id) ?? 0) + 1
-        );
-      }
+      return (rawCollabs as Row[]).map((c) => {
+        const items = c.collab_items ?? [];
+        const photos = items
+          .sort((a, b) => a.position - b.position)
+          .map((item) => item.place?.img_url)
+          .filter((url): url is string => Boolean(url))
+          .slice(0, 3);
+        const placeCount = items.length;
 
-      return rawCollabs.map((c) => ({
-        ...c,
-        profile: profileMap.get(c.creator_id),
-        itemCount: countMap.get(c.id) ?? 0,
-      })) as CollabWithItemCount[];
+        const { collab_items: _, ...rest } = c;
+        return {
+          ...rest,
+          profile: profileMap.get(c.creator_id),
+          itemCount: placeCount,
+          photos,
+        } as CollabWithItemCount;
+      });
     })(),
   ]);
 
+  const totalCount = countResult;
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const collabs = collabsResult ?? [];
 
   return (
-    <EntdeckenClient
-      collabs={collabs}
-      articles={[]}
-      currentUserId={user.id}
-    />
+    <div>
+      {/* Header mit Erstellen-Button */}
+      <div className="mb-4 flex items-start justify-between pt-4">
+        <div>
+          <h1 className="font-serif text-2xl text-forest">Entdecken</h1>
+          <p className="mt-1 text-sm text-sage">
+            Kuratierte Orte & Listen für München
+          </p>
+        </div>
+        <Link
+          href="/collabs/new"
+          className="mt-1 flex flex-shrink-0 items-center gap-1.5 rounded-xl bg-[#2D5016] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1f3a10]"
+        >
+          <span>+</span> Erstellen
+        </Link>
+      </div>
+
+      {/* Kategorie-Filter — horizontal scrollbar */}
+      <div className="-mx-4 mb-5 px-4">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat.value || "alle"}
+              href={
+                cat.value
+                  ? `/entdecken?category=${encodeURIComponent(cat.value)}`
+                  : "/entdecken"
+              }
+              className={`flex-none whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeCategory === cat.value
+                  ? "bg-[#2D5016] text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {cat.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Collabs Grid */}
+      <EntdeckenClient collabs={collabs} currentUserId={user.id} />
+
+      {/* Paginierung */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath="/entdecken"
+        searchParams={activeCategory ? { category: activeCategory } : {}}
+      />
+    </div>
   );
 }

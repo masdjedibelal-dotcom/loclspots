@@ -16,59 +16,47 @@ export function HomeClient({
 }: HomeClientProps) {
   return (
     <div className="space-y-6">
-      {/* Begrüßung */}
-      <div className="pb-2">
-        <h1 className="font-serif text-2xl font-semibold text-forest sm:text-3xl">
-          {greeting}, {displayName}!
+      {/* Begrüßung — weniger top-padding da Header da ist */}
+      <div className="pt-4 pb-2">
+        <h1 className="text-2xl font-semibold text-gray-900">
+          {greeting}, {displayName.split(" ")[0] || displayName}!
         </h1>
-        <p className="mt-1 text-sm text-sage">
+        <p className="mt-1 text-sm text-gray-500">
           Was passiert gerade in deiner Community.
         </p>
       </div>
 
-      {/* Chatrooms – 3 Karten, horizontal scrollbar Mobile */}
+      {/* Chatrooms */}
       {chatrooms.length > 0 && (
         <section className="py-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold text-forest">
-                💬 Aktive Chatrooms
-              </h2>
-              <p className="text-sm text-sage">
-                Wo gerade am meisten los ist
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">💬 Chatrooms</h2>
+              <p className="text-xs text-gray-500">
+                Thematische Gruppen für München ab 30
               </p>
             </div>
             <Link
               href="/chatrooms"
-              className="shrink-0 text-sm font-medium text-forest"
+              className="text-sm font-medium text-[#2D5016]"
             >
-              Alle anzeigen →
+              Alle →
             </Link>
           </div>
-          <div
-            className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x snap-mandatory scroll-smooth md:mx-0 md:px-0"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
+          <div className="grid grid-cols-2 gap-2">
             {chatrooms.map((room) => (
               <Link
                 key={room.id}
                 href={`/chatrooms/${room.id}`}
-                className="group flex w-[85vw] shrink-0 snap-start items-start gap-3 rounded-2xl border border-warm bg-white p-4 transition-shadow hover:shadow-md md:w-[340px]"
+                className="rounded-2xl border border-gray-100 bg-white p-4 transition-shadow hover:shadow-sm"
               >
-                <span className="text-3xl" role="img" aria-hidden>
-                  {room.emoji}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-semibold text-forest">
-                    {room.name}
-                  </h3>
-                  <p className="mt-0.5 line-clamp-2 text-sm text-sage">
-                    {room.description ?? ""}
-                  </p>
+                <div className="mb-2 text-2xl" role="img" aria-hidden>
+                  {room.emoji ?? "💬"}
                 </div>
-                <span className="whitespace-nowrap text-xs font-medium text-forest">
-                  Beitreten →
-                </span>
+                <div className="line-clamp-2 text-sm font-medium text-gray-900">
+                  {room.name}
+                </div>
+                <div className="mt-1 text-xs text-gray-400">{room.category}</div>
               </Link>
             ))}
           </div>

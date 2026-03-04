@@ -138,8 +138,8 @@ export function ProfilClient({
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
           <AvatarUpload
             userId={currentUserId}
-            currentAvatarUrl={profile.avatar_url}
-            onUploadComplete={() => router.refresh()}
+            currentUrl={profile.avatar_url}
+            onSuccess={() => router.refresh()}
           />
           <div className="flex-1 text-center sm:text-left">
             <h1 className="font-serif text-2xl font-bold text-forest sm:text-3xl">
