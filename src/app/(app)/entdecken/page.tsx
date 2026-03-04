@@ -16,11 +16,22 @@ const CATEGORIES = [
   { value: "Sonstiges", label: "📍 Sonstiges" },
 ];
 
-// Relation place_id -> place (PostgREST: column ohne _id)
+// Relation place_id -> place (PostgREST gibt place als Objekt oder Array zurück)
+interface PlaceRow {
+  id: string;
+  name: string;
+  img_url: string | null;
+}
 interface CollabItemRow {
   place_id: string;
   position: number;
-  place?: { id: string; name: string; img_url: string | null };
+  place?: PlaceRow | PlaceRow[] | null;
+}
+
+function getPlaceImgUrl(place: PlaceRow | PlaceRow[] | undefined | null): string | null {
+  if (!place) return null;
+  const p = Array.isArray(place) ? place[0] : place;
+  return p?.img_url ?? null;
 }
 
 interface CollabWithItemCount extends Collab {
@@ -104,10 +115,10 @@ export default async function EntdeckenPage({ searchParams }: PageProps) {
       };
 
       return (rawCollabs as Row[]).map((c) => {
-        const items = c.collab_items ?? [];
+        const items = (c.collab_items ?? []) as CollabItemRow[];
         const photos = items
           .sort((a, b) => a.position - b.position)
-          .map((item) => item.place?.img_url)
+          .map((item) => getPlaceImgUrl(item.place))
           .filter((url): url is string => Boolean(url))
           .slice(0, 3);
         const placeCount = items.length;
