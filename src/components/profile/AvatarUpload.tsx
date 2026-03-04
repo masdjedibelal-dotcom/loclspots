@@ -2,161 +2,58 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
+import { uploadAvatar } from "@/lib/uploadAvatar";
 
 interface AvatarUploadProps {
   userId: string;
-  currentAvatarUrl?: string | null;
-  onUploadComplete?: (url: string) => void;
-}
-
-const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
-
-async function compressImage(
-  file: File,
-  maxWidth: number,
-  maxHeight: number,
-  quality: number
-): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = document.createElement("img");
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-
-      const canvas = document.createElement("canvas");
-
-      // Seitenverhältnis beibehalten, auf max Größe skalieren
-      let { width, height } = img;
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Canvas context not available"));
-        return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))),
-        "image/jpeg",
-        quality
-      );
-    };
-
-    img.onerror = () => reject(new Error("Image load failed"));
-    img.src = url;
-  });
+  currentUrl?: string | null;
+  onSuccess: (url: string) => void;
 }
 
 export function AvatarUpload({
   userId,
-  currentAvatarUrl,
-  onUploadComplete,
+  currentUrl,
+  onSuccess,
 }: AvatarUploadProps) {
-  const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(currentAvatarUrl ?? null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    setPreview(currentAvatarUrl ?? null);
-  }, [currentAvatarUrl]);
+    setPreview(currentUrl ?? null);
+  }, [currentUrl]);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setError(null);
-    setUploading(true);
+    setLoading(true);
+
+    const blobUrl = URL.createObjectURL(file);
+    setPreview(blobUrl);
 
     try {
-      // 1. Format prüfen und konvertieren (HEIC → JPEG)
-      const isHeic =
-        file.type === "image/heic" ||
-        file.type === "image/heif" ||
-        file.name.toLowerCase().endsWith(".heic") ||
-        file.name.toLowerCase().endsWith(".heif");
-
-      let imageFile: File = file;
-
-      if (isHeic) {
-        try {
-          const heic2any = (await import("heic2any")).default;
-          const result = await heic2any({
-            blob: file,
-            toType: "image/jpeg",
-            quality: 0.85,
-          });
-          const convertedBlob = Array.isArray(result) ? result[0]! : result;
-          imageFile = new File([convertedBlob], "avatar.jpg", { type: "image/jpeg" });
-        } catch {
-          setError("Bitte wähle ein JPEG oder PNG Bild");
-          setUploading(false);
-          return;
-        }
-      }
-
-      // 2. Dateigröße prüfen (vor Komprimierung)
-      if (imageFile.size > MAX_SIZE) {
-        setError("Bild ist zu groß (max. 10 MB)");
-        setUploading(false);
-        return;
-      }
-
-      if (!imageFile.type.startsWith("image/")) {
-        setError("Nur Bilder erlaubt.");
-        setUploading(false);
-        return;
-      }
-
-      // 3. Via Canvas komprimieren + auf 400x400 skalieren
-      const compressed = await compressImage(imageFile, 400, 400, 0.85);
-
-      // 4. Upload zu Supabase
-      const fileName = `${userId}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, compressed, {
-          contentType: "image/jpeg",
-          upsert: true,
-          cacheControl: "3600",
-        });
-
-      if (uploadError) throw uploadError;
-
-      // 5. URL speichern
-      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
+      const url = await uploadAvatar(file, userId, supabase);
+      URL.revokeObjectURL(blobUrl);
 
       await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: url })
         .eq("id", userId);
 
-      setPreview(publicUrl);
-      onUploadComplete?.(publicUrl);
+      setPreview(url);
+      onSuccess(url);
     } catch (err) {
+      URL.revokeObjectURL(blobUrl);
       console.error("Upload error:", err);
       setError("Upload fehlgeschlagen. Bitte versuche es erneut.");
-      setPreview(currentAvatarUrl ?? null);
+      setPreview(currentUrl ?? null);
     } finally {
-      setUploading(false);
+      setLoading(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
@@ -165,52 +62,70 @@ export function AvatarUpload({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="relative h-24 w-24 overflow-hidden rounded-full bg-gray-100 ring-2 ring-forest/20 transition-all hover:ring-forest/60"
-        disabled={uploading}
+        disabled={loading}
+        className="relative h-24 w-24 overflow-hidden rounded-full bg-gray-100 transition-opacity hover:opacity-80"
       >
         {preview ? (
-          <Image
+          <img
             src={preview}
             alt="Profilbild"
-            fill
-            className="object-cover"
-            unoptimized
-            sizes="96px"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-3xl text-gray-400">
+          <div className="flex h-full w-full items-center justify-center bg-[#2D5016]/10 text-3xl text-[#2D5016]">
             👤
           </div>
         )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100">
-          <span className="text-xs font-medium text-white">
-            {uploading ? "Lädt..." : "Ändern"}
-          </span>
-        </div>
+
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div
+              className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent"
+              aria-hidden
+            />
+          </div>
+        )}
+
+        {!loading && (
+          <div className="absolute bottom-0 right-0 rounded-full bg-[#2D5016] p-1.5 shadow-sm">
+            <svg
+              className="h-3.5 w-3.5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+          </div>
+        )}
       </button>
+
+      <p className="text-xs text-gray-400">Tippen um Foto zu ändern</p>
+
+      {error && (
+        <p className="text-xs text-red-500" role="alert">
+          {error}
+        </p>
+      )}
 
       <input
         ref={inputRef}
         type="file"
         accept="image/*,.heic,.heif"
+        onChange={handleFile}
         className="hidden"
-        onChange={handleFileChange}
       />
-
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="text-sm font-medium text-forest hover:underline disabled:opacity-70"
-        disabled={uploading}
-      >
-        {uploading ? "Wird hochgeladen..." : "Profilbild ändern"}
-      </button>
-
-      {error && (
-        <p className="mt-2 text-sm text-red-500" role="alert">
-          {error}
-        </p>
-      )}
     </div>
   );
 }

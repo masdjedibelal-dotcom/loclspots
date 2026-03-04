@@ -19,8 +19,19 @@ export function CollabPlacesList({ items }: CollabPlacesListProps) {
   const from = (currentPage - 1) * PAGINATION.PLACES;
   const pageItems = items.slice(from, from + PAGINATION.PLACES);
 
+  if (items.length === 0) {
+    return (
+      <p className="py-8 text-center text-sage">
+        Noch keine Orte in dieser Collab.
+      </p>
+    );
+  }
+
   return (
     <div>
+      <h2 className="mb-8 font-serif text-2xl font-bold text-forest">
+        Orte in dieser Collab
+      </h2>
       <div className="space-y-24">
         {pageItems.map((item, i) => (
           <PlaceCardEditorial

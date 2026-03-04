@@ -1,5 +1,6 @@
 import { supabasePublic } from "@/lib/supabase/public";
 import type { Collab, CollabItem, Place } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const PLACE_SELECT =
   "id, name, category, address, rating, review_count, price, img_url, place_url, website, instagram_url, lat, lng, opening_hours_json";
@@ -12,11 +13,12 @@ export interface CollabWithItems {
 }
 
 export async function getCollabWithItems(
-  id: string
+  id: string,
+  supabase?: SupabaseClient
 ): Promise<CollabWithItems | null> {
-  const supabase = supabasePublic;
+  const client = supabase ?? supabasePublic;
 
-  const { data: collab, error: collabError } = await supabase
+  const { data: collab, error: collabError } = await client
     .from("collabs")
     .select("*")
     .eq("id", id)
@@ -29,7 +31,7 @@ export async function getCollabWithItems(
 
   const category = (collabData.category as string) ?? "";
 
-  const { data: itemsData } = await supabase
+  const { data: itemsData } = await client
     .from("collab_items")
     .select("id, collab_id, place_id, position, description, created_at, name, maps_url")
     .eq("collab_id", id)
@@ -42,7 +44,7 @@ export async function getCollabWithItems(
 
   let placeMap = new Map<string, Record<string, unknown>>();
   if (placeIds.length > 0) {
-    const { data: places } = await supabase
+    const { data: places } = await client
       .from("places")
       .select(PLACE_SELECT)
       .in("id", placeIds);
@@ -58,21 +60,21 @@ export async function getCollabWithItems(
   let chatroom: { id: string; name: string; emoji: string } | null = null;
   const chatroomId = collabData.chatroom_id as string | undefined;
   if (chatroomId) {
-    const { data: room } = await supabase
+    const { data: room } = await client
       .from("chatrooms")
       .select("id, name, emoji")
       .eq("id", chatroomId)
       .single();
     chatroom = room;
   } else {
-    const { data: link } = await supabase
+    const { data: link } = await client
       .from("collab_chatroom_links")
       .select("chatroom_id")
       .eq("collab_id", id)
       .limit(1)
       .maybeSingle();
     if (link?.chatroom_id) {
-      const { data: room } = await supabase
+      const { data: room } = await client
         .from("chatrooms")
         .select("id, name, emoji")
         .eq("id", link.chatroom_id)
@@ -81,7 +83,7 @@ export async function getCollabWithItems(
     }
   }
 
-  let relatedQuery = supabase
+  let relatedQuery = client
     .from("collabs")
     .select("id, title, cover_emoji")
     .eq("is_public", true)

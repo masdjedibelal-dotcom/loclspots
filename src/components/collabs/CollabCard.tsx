@@ -1,103 +1,118 @@
 "use client";
 
 import Link from "next/link";
-import { Heart } from "lucide-react";
-import { Avatar } from "@/components/ui/Avatar";
-import { Badge } from "@/components/ui/Badge";
 import type { Collab } from "@/lib/types";
-import { cn } from "@/lib/utils";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Kulinarik: "bg-peach/30",
-  Kochen: "bg-peach/30",
-  Genuss: "bg-peach/20",
-  Kultur: "bg-sage/20",
-  Outdoor: "bg-mint/30",
-  Sport: "bg-sky-200/80",
-  Fitness: "bg-sky-200/80",
-  Natur: "bg-mint/30",
-  Brettspiele: "bg-warm",
-  Sonstiges: "bg-cream",
-  default: "bg-warm",
-};
 
 function getCategoryBg(category: string): string {
-  for (const [key, value] of Object.entries(CATEGORY_COLORS)) {
+  const map: Record<string, string> = {
+    "Essen & Trinken": "bg-orange-50",
+    Kulinarik: "bg-orange-50",
+    Kochen: "bg-orange-50",
+    Genuss: "bg-orange-50",
+    Outdoor: "bg-green-50",
+    Natur: "bg-green-50",
+    Kultur: "bg-purple-50",
+    Sport: "bg-blue-50",
+    Fitness: "bg-blue-50",
+    "After Work": "bg-yellow-50",
+    Sonstiges: "bg-gray-50",
+  };
+  for (const [key, value] of Object.entries(map)) {
     if (category.includes(key)) return value;
   }
-  return CATEGORY_COLORS.default;
+  return "bg-gray-50";
+}
+
+function getCategoryBadge(category: string): string {
+  const map: Record<string, string> = {
+    "Essen & Trinken": "bg-orange-100 text-orange-700",
+    Kulinarik: "bg-orange-100 text-orange-700",
+    Kochen: "bg-orange-100 text-orange-700",
+    Genuss: "bg-orange-100 text-orange-700",
+    Outdoor: "bg-green-100 text-green-700",
+    Natur: "bg-green-100 text-green-700",
+    Kultur: "bg-purple-100 text-purple-700",
+    Sport: "bg-blue-100 text-blue-700",
+    Fitness: "bg-blue-100 text-blue-700",
+    "After Work": "bg-yellow-100 text-yellow-700",
+    Sonstiges: "bg-gray-100 text-gray-600",
+  };
+  for (const [key, value] of Object.entries(map)) {
+    if (category.includes(key)) return value;
+  }
+  return "bg-gray-100 text-gray-600";
 }
 
 interface CollabCardProps {
-  collab: Collab;
+  collab: Collab & { photos?: string[] };
   itemCount: number;
 }
 
 export function CollabCard({ collab, itemCount }: CollabCardProps) {
-  const bgClass = getCategoryBg(collab.category ?? "");
-  const profile = collab.profile;
+  const photos = collab.photos ?? [];
+  const placeCount = itemCount;
+  const coverEmoji = collab.cover_emoji ?? "📋";
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-warm bg-white transition-shadow hover:shadow-md">
-      <Link href={`/collabs/${collab.id}`} className="flex flex-col flex-1">
-        <div
-          className={cn(
-            "flex h-[120px] flex-col items-center justify-center",
-            bgClass
-          )}
-        >
-          <span className="text-5xl" role="img" aria-hidden>
-            {collab.cover_emoji ?? "📋"}
-          </span>
-        </div>
-
-        <div className="flex flex-1 flex-col p-4">
-          <div className="mb-2">
-            <Badge variant="green">{collab.category}</Badge>
+    <Link
+      href={`/collabs/${collab.id}`}
+      className="block overflow-hidden rounded-2xl border border-gray-100 bg-white transition-shadow hover:shadow-md"
+    >
+      {/* Foto-Collage Header */}
+      <div className="relative h-32 overflow-hidden bg-gray-100">
+        {photos.length >= 3 ? (
+          <div className="grid h-full grid-cols-3 gap-0.5">
+            {photos.slice(0, 3).map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ))}
           </div>
-          <h3 className="line-clamp-2 font-bold text-forest">
-            {collab.title}
-          </h3>
-          {collab.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-sage">
-              {collab.description}
-            </p>
-          )}
-
-          <div className="mt-4 flex flex-1 flex-wrap items-end gap-3">
-            {profile && (
-              <div className="flex items-center gap-2">
-                <Avatar
-                  url={profile.avatar_url}
-                  name={profile.display_name}
-                  size="sm"
-                />
-                <span className="max-w-[80px] truncate text-xs text-sage">
-                  {profile.display_name}
-                </span>
-              </div>
-            )}
-            <span className="text-xs text-sage">
-              {itemCount} {itemCount === 1 ? "Ort" : "Orte"}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-sage">
-              <Heart className="h-4 w-4" aria-hidden />
-              {collab.likes_count}
-            </span>
+        ) : photos.length === 2 ? (
+          <div className="grid h-full grid-cols-2 gap-0.5">
+            {photos.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ))}
           </div>
-        </div>
-      </Link>
-
-      {collab.chatroom_id && (
-        <div className="border-t border-warm px-4 pb-4 pt-2">
-          <Link
-            href={`/chatrooms/${collab.chatroom_id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-sage/50 px-3 py-1.5 text-sm text-forest transition-colors hover:bg-sage/10"
+        ) : photos.length === 1 ? (
+          <img
+            src={photos[0]}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className={`flex h-full w-full items-center justify-center text-4xl ${getCategoryBg(collab.category ?? "")}`}
           >
-            💬 Im Chatroom diskutieren
-          </Link>
+            {coverEmoji}
+          </div>
+        )}
+
+        {/* Orte-Badge oben rechts */}
+        <div className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+          {placeCount} {placeCount === 1 ? "Ort" : "Orte"}
         </div>
-      )}
-    </div>
+      </div>
+
+      {/* Info */}
+      <div className="p-3">
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${getCategoryBadge(collab.category ?? "")}`}
+        >
+          {collab.category}
+        </span>
+        <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+          {collab.title}
+        </h3>
+      </div>
+    </Link>
   );
 }
